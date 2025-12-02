@@ -16,7 +16,6 @@ import {
   Pause,
   RefreshCw,
 } from 'lucide-react';
-import { getCameraStreamUrl } from '@/lib/api';
 
 type CameraMode = 'webcam' | 'ip' | 'stream';
 
@@ -123,8 +122,8 @@ export default function CameraPage() {
     }
   }, []);
 
-  // Get server stream URL
-  const serverStreamUrl = getCameraStreamUrl(0);
+  // Server stream URL (placeholder)
+  const serverStreamUrl = '/api/stream/0';
 
   return (
     <div className="space-y-6">

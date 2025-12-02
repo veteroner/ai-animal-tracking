@@ -16,7 +16,19 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react';
-import { getAnimals, deleteAnimal, type Animal } from '@/lib/api';
+
+interface Animal {
+  id: number;
+  tag_id: string;
+  name?: string;
+  species: string;
+  breed: string;
+  gender: string;
+  health_status: string;
+  weight: number;
+  birth_date?: string;
+  created_at: string;
+}
 
 const healthStatusColors = {
   healthy: { bg: 'bg-success-100', text: 'text-success-600', label: 'Sağlıklı' },
@@ -40,11 +52,7 @@ export default function AnimalsPage() {
 
   const fetchAnimals = async () => {
     try {
-      const response = await getAnimals();
-      setAnimals(response.data);
-    } catch (error) {
-      console.error('Error fetching animals:', error);
-      // Set demo data if API fails
+      // Demo data
       setAnimals([
         { id: 1, tag_id: 'TR-001', name: 'Sarıkız', species: 'cattle', breed: 'Simental', gender: 'female', health_status: 'healthy', weight: 450, created_at: '2024-01-15' },
         { id: 2, tag_id: 'TR-002', name: 'Karabaş', species: 'cattle', breed: 'Holstein', gender: 'male', health_status: 'warning', weight: 520, created_at: '2024-01-10' },
@@ -60,7 +68,7 @@ export default function AnimalsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteAnimal(id);
+      // Delete from local state
       setAnimals(animals.filter(a => a.id !== id));
       setShowDeleteConfirm(null);
     } catch (error) {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import StatCard from '@/components/ui/StatCard';
-import { getSystemStats, getAlerts, getRecentDetections, type SystemStats, type Alert, type Detection } from '@/lib/api';
 import {
   Dog,
   Heart,
@@ -43,40 +42,30 @@ const healthDistribution = [
   { name: 'Hasta', value: 5, color: '#ef4444' },
 ];
 
+// Mock alerts data
+const mockAlerts = [
+  { id: 1, message: 'Sarıkız - Düşük aktivite tespit edildi', severity: 'medium', created_at: new Date().toISOString() },
+  { id: 2, message: 'Karantina bölgesinde hareket algılandı', severity: 'high', created_at: new Date().toISOString() },
+  { id: 3, message: 'Kamera 2 bağlantısı kesildi', severity: 'low', created_at: new Date().toISOString() },
+];
+
+// Mock detections data
+const mockDetections = [
+  { id: 1, class_name: 'İnek', confidence: 0.95, detection_time: new Date().toISOString() },
+  { id: 2, class_name: 'Buzağı', confidence: 0.88, detection_time: new Date().toISOString() },
+  { id: 3, class_name: 'Boğa', confidence: 0.92, detection_time: new Date().toISOString() },
+];
+
 export default function Dashboard() {
-  const [stats, setStats] = useState<SystemStats | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [recentDetections, setRecentDetections] = useState<Detection[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, alertsRes, detectionsRes] = await Promise.all([
-          getSystemStats().catch(() => ({ data: null })),
-          getAlerts(true).catch(() => ({ data: [] })),
-          getRecentDetections(5).catch(() => ({ data: [] })),
-        ]);
-
-        if (statsRes.data) setStats(statsRes.data);
-        if (alertsRes.data) setAlerts(alertsRes.data);
-        if (detectionsRes.data) setRecentDetections(detectionsRes.data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-    
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    // Simulating data load
+    setTimeout(() => setLoading(false), 500);
   }, []);
 
-  // Default stats if API is not available
-  const displayStats = stats || {
+  // Stats data
+  const displayStats = {
     total_animals: 156,
     healthy_animals: 132,
     sick_animals: 8,
@@ -228,8 +217,8 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {alerts.length > 0 ? (
-              alerts.slice(0, 5).map((alert) => (
+            {mockAlerts.length > 0 ? (
+              mockAlerts.slice(0, 5).map((alert) => (
                 <div
                   key={alert.id}
                   className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -273,8 +262,8 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {recentDetections.length > 0 ? (
-              recentDetections.map((detection) => (
+            {mockDetections.length > 0 ? (
+              mockDetections.map((detection) => (
                 <div
                   key={detection.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"
