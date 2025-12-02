@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-12-02T11:32:11.650302",
+  "duration_seconds": 2.23,
+  "benchmarks": {
+    "detection_creation": {
+      "iterations": 10000,
+      "total_ms": 3.626,
+      "per_item_ms": 0.000363,
+      "items_per_second": 2757955.0
+    },
+    "detection_result_creation": {
+      "iterations": 5000,
+      "total_ms": 2.53,
+      "per_item_ms": 0.000506,
+      "detections_per_result": 10
+    },
+    "track_creation": {
+      "error": "__init__() missing 4 required positional arguments: 'class_id', 'class_name', 'center', and 'confidence'"
+    },
+    "db_insert": {
+      "error": "'animal_id' is an invalid keyword argument for Animal"
+    },
+    "frame_preprocessing": {
+      "iterations": 100,
+      "total_ms": 318.11,
+      "per_frame_ms": 3.18,
+      "fps_capacity": 314.4
+    },
+    "csv_export": {
+      "iterations": 50,
+      "records_per_export": 1000,
+      "total_ms": 49.475,
+      "per_export_ms": 0.99
+    },
+    "json_export": {
+      "iterations": 50,
+      "records_per_export": 1000,
+      "total_ms": 133.277,
+      "per_export_ms": 2.67
+    }
+  },
+  "memory": {
+    "start": {
+      "label": "benchmark_start",
+      "timestamp": "2025-12-02T11:32:10.053186",
+      "rss_mb": 38.125,
+      "vms_mb": 425087.640625,
+      "percent": 0.232696533203125
+    },
+    "end": {
+      "label": "benchmark_end",
+      "timestamp": "2025-12-02T11:32:11.650291",
+      "rss_mb": 241.109375,
+      "vms_mb": 425510.90625,
+      "percent": 1.4716148376464844
+    },
+    "diff": {
+      "from": "benchmark_start",
+      "to": "benchmark_end",
+      "rss_diff_mb": 202.984375,
+      "vms_diff_mb": 423.265625,
+      "percent_diff": 1.2389183044433594
+    }
+  },
+  "profiler_summary": {
+    "enabled": true,
+    "uptime_seconds": 2.226678,
+    "timing_metrics_count": 0,
+    "counter_metrics_count": 0,
+    "gauge_metrics_count": 0,
+    "total_timing_samples": 0,
+    "total_time_tracked_ms": 0,
+    "slowest_operations": [],
+    "most_called_operations": [],
+    "bottlenecks": []
+  }
+}

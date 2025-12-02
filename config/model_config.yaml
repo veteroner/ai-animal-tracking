@@ -1,0 +1,204 @@
+# Model Konfigürasyonu
+# ========================
+
+# Nesne Tespiti (Detection)
+detection:
+  # Model seçimi
+  model_name: "yolov8n.pt"  # nano (hızlı), s (small), m (medium), l (large), x (xlarge)
+  model_path: "./models/pretrained/"
+  
+  # Cihaz seçimi
+  device: "auto"  # auto, cpu, cuda, cuda:0, mps (Apple Silicon)
+  
+  # Tespit parametreleri
+  confidence_threshold: 0.5  # Minimum güven skoru
+  iou_threshold: 0.45  # NMS IoU eşiği
+  max_detections: 100  # Maksimum tespit sayısı
+  
+  # Sınıf filtreleme (COCO sınıfları)
+  # Hayvan sınıfları: cow(19), sheep(18), horse(17), dog(16), cat(15), bird(14)
+  target_classes:
+    - 19  # cow (inek)
+    - 18  # sheep (koyun)
+    - 17  # horse (at)
+    - 16  # dog (köpek)
+    - 15  # cat (kedi)
+    - 14  # bird (kuş)
+  
+  # Görüntü işleme
+  input_size: 640  # Model input boyutu
+  half_precision: false  # FP16 kullanımı (GPU için)
+  
+  # Performans
+  batch_size: 1
+  warmup_frames: 10
+
+# Nesne Takibi (Tracking)
+tracking:
+  # Algoritma seçimi
+  algorithm: "deepsort"  # deepsort, bytetrack, sort
+  
+  # DeepSORT parametreleri
+  deepsort:
+    # Re-ID modeli
+    reid_model: "osnet_x0_25_msmt17.pt"
+    reid_model_path: "./models/pretrained/"
+    
+    # Kalman Filter parametreleri
+    max_age: 70  # Track kaybedilmeden önce maksimum frame sayısı
+    min_hits: 3  # Track onaylanması için minimum tespit sayısı
+    iou_threshold: 0.3  # Eşleştirme IoU eşiği
+    
+    # Görünüm özellikleri
+    max_cosine_distance: 0.2  # Maksimum cosine mesafesi
+    nn_budget: 100  # Özellik belleği boyutu
+    
+  # ByteTrack parametreleri
+  bytetrack:
+    track_thresh: 0.5
+    track_buffer: 30
+    match_thresh: 0.8
+    min_box_area: 10
+    
+  # SORT parametreleri
+  sort:
+    max_age: 30
+    min_hits: 3
+    iou_threshold: 0.3
+
+# Hayvan Re-Identification
+re_identification:
+  enabled: true
+  
+  # Özellik çıkarma modeli
+  model_name: "osnet_x0_25_msmt17"
+  model_path: "./models/pretrained/"
+  
+  # Embedding parametreleri
+  embedding_dim: 512
+  
+  # Eşleştirme parametreleri
+  similarity_threshold: 0.7  # Minimum benzerlik skoru
+  min_samples: 5  # Kayıt için minimum örnek sayısı
+  
+  # Veritabanı
+  database_path: "./data/embeddings/"
+  
+  # Güncelleme
+  update_interval: 10  # Frame başına güncelleme
+
+# Davranış Analizi
+behavior:
+  enabled: true
+  
+  # Aktivite sınıflandırma
+  activities:
+    - name: "eating"
+      description: "Yeme davranışı"
+      enabled: true
+    - name: "walking"
+      description: "Yürüme"
+      enabled: true
+    - name: "standing"
+      description: "Ayakta durma"
+      enabled: true
+    - name: "lying"
+      description: "Yatma/Dinlenme"
+      enabled: true
+    - name: "drinking"
+      description: "Su içme"
+      enabled: true
+  
+  # Hareket analizi
+  motion:
+    speed_threshold_slow: 0.5  # m/s
+    speed_threshold_fast: 2.0  # m/s
+    stationary_threshold: 0.1  # m/s
+    
+  # Zaman bazlı analiz
+  analysis_interval: 1.0  # saniye
+  history_window: 300  # saniye (5 dakika)
+
+# Sağlık İzleme
+health:
+  enabled: true
+  
+  # Vücut kondisyon skoru
+  body_condition:
+    enabled: true
+    min_score: 1.0
+    max_score: 5.0
+    warning_threshold: 2.0
+    
+  # Topallama tespiti
+  lameness:
+    enabled: true
+    sensitivity: "medium"  # low, medium, high
+    min_walking_distance: 5.0  # metre
+    
+  # Anormallik tespiti
+  anomaly:
+    enabled: true
+    algorithm: "isolation_forest"  # isolation_forest, autoencoder
+    contamination: 0.1
+    
+  # Erken uyarı
+  early_warning:
+    enabled: true
+    inactivity_threshold: 3600  # saniye
+    eating_drop_threshold: 0.5  # %50 düşüş
+
+# Poz Tahmini (Opsiyonel)
+pose_estimation:
+  enabled: false
+  model_name: "animal_pose_hrnet"
+  model_path: "./models/pretrained/"
+  keypoints:
+    - "nose"
+    - "left_eye"
+    - "right_eye"
+    - "left_ear"
+    - "right_ear"
+    - "left_shoulder"
+    - "right_shoulder"
+    - "left_elbow"
+    - "right_elbow"
+    - "left_wrist"
+    - "right_wrist"
+    - "left_hip"
+    - "right_hip"
+    - "left_knee"
+    - "right_knee"
+    - "left_ankle"
+    - "right_ankle"
+    - "tail"
+
+# Özel Model Eğitimi
+training:
+  # Veri seti
+  dataset_path: "./data/datasets/"
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  
+  # Eğitim parametreleri
+  epochs: 100
+  batch_size: 16
+  learning_rate: 0.001
+  optimizer: "AdamW"
+  scheduler: "cosine"
+  
+  # Augmentation
+  augmentation:
+    enabled: true
+    horizontal_flip: true
+    vertical_flip: false
+    rotation: 15
+    scale: [0.8, 1.2]
+    brightness: 0.2
+    contrast: 0.2
+    
+  # Kayıt
+  checkpoint_dir: "./models/custom/"
+  save_best_only: true
+  early_stopping_patience: 10

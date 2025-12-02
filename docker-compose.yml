@@ -1,0 +1,112 @@
+# AI Animal Tracking System - Docker Compose
+# ===========================================
+# Development and Production configurations
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # API Service
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: animal_tracking_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///data/tracking.db
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - tracking_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # Streamlit Dashboard
+  # ==========================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: animal_tracking_dashboard
+    command: streamlit run src/ui/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - tracking_network
+
+  # ==========================================
+  # PostgreSQL (Production Database)
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: animal_tracking_db
+    environment:
+      - POSTGRES_DB=animal_tracking
+      - POSTGRES_USER=tracking_user
+      - POSTGRES_PASSWORD=secure_password_change_me
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - tracking_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracking_user -d animal_tracking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - production
+
+  # ==========================================
+  # Redis (Caching & Message Queue)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: animal_tracking_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - tracking_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - production
+
+networks:
+  tracking_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

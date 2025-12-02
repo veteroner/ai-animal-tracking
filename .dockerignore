@@ -1,0 +1,72 @@
+# Docker ignore file for AI Animal Tracking System
+
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.eggs/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# Build
+build/
+dist/
+*.manifest
+*.spec
+
+# Logs
+logs/
+*.log
+
+# Local data (use volumes instead)
+data/*.db
+data/snapshots/
+*.sqlite
+
+# Documentation
+docs/_build/
+*.md
+!README.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pem
+*.key
+secrets/

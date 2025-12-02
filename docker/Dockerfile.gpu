@@ -1,0 +1,70 @@
+# ===========================================
+# AI Animal Tracking System - GPU Dockerfile
+# ===========================================
+# NVIDIA GPU desteği ile çalışır
+# Gereksinim: nvidia-docker veya docker --gpus
+
+FROM nvidia/cuda:11.8-cudnn8-runtime-ubuntu22.04
+
+# Metadata
+LABEL maintainer="AI Animal Tracking Team"
+LABEL version="0.1.0"
+LABEL description="AI-powered animal tracking system with GPU support"
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Sistem bağımlılıkları
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    build-essential \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    libgstreamer1.0-0 \
+    libgstreamer-plugins-base1.0-0 \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python
+
+# Çalışma dizini
+WORKDIR /app
+
+# Requirements dosyasını kopyala ve bağımlılıkları yükle
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Uygulama kodunu kopyala
+COPY . .
+
+# Gerekli dizinleri oluştur
+RUN mkdir -p data/videos data/snapshots data/exports data/embeddings \
+    models/pretrained models/custom \
+    logs
+
+# Non-root user
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Port
+EXPOSE 8000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Varsayılan komut
+CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

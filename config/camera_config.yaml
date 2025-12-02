@@ -1,0 +1,103 @@
+# Kamera Konfigürasyonu
+# ========================
+
+# Varsayılan kamera ayarları
+defaults:
+  resolution:
+    width: 1280
+    height: 720
+  fps: 30
+  buffer_size: 10
+  reconnect_interval: 5  # saniye
+  max_reconnect_attempts: 10
+
+# Kamera listesi
+cameras:
+  # USB Webcam örneği
+  - id: "webcam_01"
+    name: "Ana Webcam"
+    enabled: true
+    source: 0  # USB kamera index
+    type: "usb"
+    resolution:
+      width: 1280
+      height: 720
+    fps: 30
+    
+  # IP Kamera örneği (RTSP)
+  # - id: "ip_cam_01"
+  #   name: "Ahır Kamerası 1"
+  #   enabled: false
+  #   source: "rtsp://192.168.1.100:554/stream1"
+  #   type: "rtsp"
+  #   username: "admin"
+  #   password: "password"
+  #   resolution:
+  #     width: 1920
+  #     height: 1080
+  #   fps: 25
+    
+  # Mobil Kamera örneği (IP Webcam Android)
+  # - id: "mobile_01"
+  #   name: "Telefon Kamerası"
+  #   enabled: false
+  #   source: "http://192.168.1.101:8080/video"
+  #   type: "http"
+  #   resolution:
+  #     width: 1280
+  #     height: 720
+  #   fps: 30
+
+# Bölge tanımlamaları (ROI - Region of Interest)
+zones:
+  # Yemlik bölgesi
+  - id: "feeding_zone"
+    name: "Yemlik Alanı"
+    camera_id: "webcam_01"
+    type: "polygon"
+    points:
+      - [100, 100]
+      - [500, 100]
+      - [500, 400]
+      - [100, 400]
+    color: [0, 255, 0]  # Yeşil
+    
+  # Suluk bölgesi
+  # - id: "water_zone"
+  #   name: "Suluk Alanı"
+  #   camera_id: "webcam_01"
+  #   type: "polygon"
+  #   points:
+  #     - [600, 100]
+  #     - [800, 100]
+  #     - [800, 300]
+  #     - [600, 300]
+  #   color: [0, 0, 255]  # Mavi
+    
+  # Dinlenme bölgesi
+  # - id: "rest_zone"
+  #   name: "Dinlenme Alanı"
+  #   camera_id: "webcam_01"
+  #   type: "rectangle"
+  #   x: 100
+  #   y: 500
+  #   width: 400
+  #   height: 200
+  #   color: [255, 165, 0]  # Turuncu
+
+# Video kayıt ayarları
+recording:
+  enabled: false
+  output_dir: "./data/videos"
+  format: "mp4"
+  codec: "h264"
+  segment_duration: 3600  # saniye (1 saat)
+  retention_days: 30
+  
+# Snapshot ayarları
+snapshots:
+  enabled: true
+  output_dir: "./data/snapshots"
+  format: "jpg"
+  quality: 85
+  retention_days: 7

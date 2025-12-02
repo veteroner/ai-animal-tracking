@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # Ana uygulama
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: animal_tracking_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      - ../logs:/app/logs
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/animal_tracking
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - animal_tracking_network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # PostgreSQL veritabanı
+  db:
+    image: postgres:14-alpine
+    container_name: animal_tracking_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=animal_tracking
+    networks:
+      - animal_tracking_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: animal_tracking_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - animal_tracking_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # InfluxDB (zaman serisi veritabanı)
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: animal_tracking_influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword
+      - DOCKER_INFLUXDB_INIT_ORG=animal-tracking
+      - DOCKER_INFLUXDB_INIT_BUCKET=metrics
+    networks:
+      - animal_tracking_network
+
+  # MinIO (object storage)
+  minio:
+    image: minio/minio:latest
+    container_name: animal_tracking_minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - animal_tracking_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  minio_data:
+
+networks:
+  animal_tracking_network:
+    driver: bridge
