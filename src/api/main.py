@@ -21,7 +21,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from src.core.constants import API_VERSION, API_PREFIX
-from src.api.routes import cameras_router, animals_router, analytics_router
+from src.api.routes import cameras_router, animals_router, analytics_router, detection_router
 from src.api.routes.alerts import router as alerts_router
 from src.api.routes.streaming import router as streaming_router
 
@@ -191,6 +191,7 @@ app.include_router(animals_router, prefix=API_PREFIX)
 app.include_router(analytics_router, prefix=API_PREFIX)
 app.include_router(alerts_router, prefix=API_PREFIX)
 app.include_router(streaming_router, prefix=API_PREFIX)
+app.include_router(detection_router, prefix=API_PREFIX)
 
 
 @app.get(f"{API_PREFIX}/detections", tags=["Detections"])

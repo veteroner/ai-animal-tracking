@@ -15,15 +15,18 @@ import {
   Eye,
   EyeOff,
   Activity,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 
-type CameraMode = 'webcam' | 'ip' | 'stream';
+type CameraMode = 'webcam' | 'ip' | 'server';
 
 interface TrackedAnimal {
   track_id: number;
-  animal_id: string;       // Benzersiz ID: BOV_0001
-  class_name: string;      // inek, koyun vb.
-  bbox: number[];          // [x1, y1, x2, y2]
+  animal_id: string;
+  class_name: string;
+  bbox: number[];
   confidence: number;
   re_id_confidence: number;
   is_identified: boolean;
@@ -44,22 +47,17 @@ interface DetectionResult {
 
 // Sınıf renk paleti
 const CLASS_COLORS: Record<string, string> = {
-  cow: '#22c55e',      // Yeşil
+  cow: '#22c55e',
   cattle: '#22c55e',
-  inek: '#22c55e',
-  sheep: '#f97316',    // Turuncu
-  koyun: '#f97316',
-  goat: '#d946ef',     // Mor
-  keçi: '#d946ef',
-  horse: '#3b82f6',    // Mavi
-  at: '#3b82f6',
-  chicken: '#eab308',  // Sarı
-  tavuk: '#eab308',
-  dog: '#ef4444',      // Kırmızı
-  köpek: '#ef4444',
-  cat: '#8b5cf6',      // Mor
-  kedi: '#8b5cf6',
-  default: '#06b6d4',  // Cyan
+  sheep: '#f97316',
+  goat: '#d946ef',
+  horse: '#3b82f6',
+  chicken: '#eab308',
+  bird: '#eab308',
+  dog: '#ef4444',
+  cat: '#8b5cf6',
+  person: '#06b6d4',
+  default: '#06b6d4',
 };
 
 export default function CameraPage() {
@@ -74,111 +72,122 @@ export default function CameraPage() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsStatus, setWsStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [showLabels, setShowLabels] = useState(true);
   const [showBboxes, setShowBboxes] = useState(true);
+  const [processingFps, setProcessingFps] = useState(10); // Frame gönderim hızı
+  
+  // Gallery info
+  const [galleryCount, setGalleryCount] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const sendIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Backend URL
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const wsUrl = backendUrl.replace('http', 'ws') + '/api/v1/detection/ws';
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/detection';
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+    
+    setWsStatus('connecting');
+    setError(null);
     
     try {
+      console.log('Connecting to WebSocket:', wsUrl);
       wsRef.current = new WebSocket(wsUrl);
       
       wsRef.current.onopen = () => {
-        console.log('WebSocket bağlandı');
+        console.log('WebSocket connected');
         setWsConnected(true);
+        setWsStatus('connected');
+        setError(null);
       };
       
       wsRef.current.onmessage = (event) => {
         try {
-          const data: DetectionResult = JSON.parse(event.data);
-          setDetectionResult(data);
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'connected') {
+            console.log('Detection service ready');
+          } else if (data.type === 'pong' || data.type === 'heartbeat') {
+            // Heartbeat - galeri bilgisini güncelle
+            if (data.gallery_size !== undefined) {
+              setGalleryCount(data.gallery_size);
+            }
+          } else if (data.type === 'error') {
+            console.error('Server error:', data.message);
+            setError(data.message);
+          } else if (data.frame_id !== undefined) {
+            // Detection result
+            setDetectionResult(data as DetectionResult);
+          } else if (data.type === 'gallery') {
+            setGalleryCount(data.count || 0);
+          }
         } catch (e) {
-          console.error('WebSocket mesaj hatası:', e);
+          console.error('WebSocket message parse error:', e);
         }
       };
       
       wsRef.current.onclose = () => {
-        console.log('WebSocket bağlantısı kapandı');
+        console.log('WebSocket closed');
         setWsConnected(false);
-        // Yeniden bağlan
-        setTimeout(connectWebSocket, 3000);
+        setWsStatus('disconnected');
+        
+        // Yeniden bağlan (3 saniye sonra)
+        if (isStreaming && aiEnabled) {
+          setTimeout(connectWebSocket, 3000);
+        }
       };
       
-      wsRef.current.onerror = () => {
-        console.error('WebSocket hatası');
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
         setWsConnected(false);
+        setWsStatus('disconnected');
+        setError('Backend bağlantısı kurulamadı. Backend çalışıyor mu?');
       };
     } catch (e) {
-      console.error('WebSocket bağlantı hatası:', e);
+      console.error('WebSocket connection error:', e);
+      setError('WebSocket bağlantı hatası');
     }
-  }, []);
+  }, [wsUrl, isStreaming, aiEnabled]);
 
-  // Demo mod: Simüle edilmiş tespitler
-  const simulateDetections = useCallback(() => {
-    // Demo hayvan verileri
-    const demoAnimals: TrackedAnimal[] = [
-      {
-        track_id: 1,
-        animal_id: 'BOV_0001',
-        class_name: 'cow',
-        bbox: [120, 150, 380, 420],
-        confidence: 0.94,
-        re_id_confidence: 0.87,
-        is_identified: true,
-        velocity: [2.3, -1.1],
-        direction: 45,
-        health_score: 0.92,
-        behavior: 'grazing'
-      },
-      {
-        track_id: 2,
-        animal_id: 'BOV_0002',
-        class_name: 'cow',
-        bbox: [450, 200, 680, 450],
-        confidence: 0.89,
-        re_id_confidence: 0.91,
-        is_identified: true,
-        velocity: [-1.5, 0.8],
-        direction: 120,
-        health_score: 0.88,
-        behavior: 'walking'
-      },
-      {
-        track_id: 3,
-        animal_id: 'SHP_0001',
-        class_name: 'sheep',
-        bbox: [700, 300, 850, 480],
-        confidence: 0.85,
-        re_id_confidence: 0.78,
-        is_identified: true,
-        velocity: [0.5, 0.2],
-        direction: 30,
-        health_score: 0.95,
-        behavior: 'resting'
-      }
-    ];
-
-    // Animasyon için pozisyonları biraz değiştir
-    const animatedAnimals = demoAnimals.map(animal => ({
-      ...animal,
-      bbox: animal.bbox.map((v, i) => 
-        v + Math.sin(Date.now() / 1000 + animal.track_id) * (i % 2 === 0 ? 5 : 3)
-      )
-    }));
-
-    setDetectionResult({
-      frame_id: Math.floor(Date.now() / 33),
-      timestamp: Date.now() / 1000,
-      fps: 30.2,
-      animal_count: animatedAnimals.length,
-      animals: animatedAnimals,
-      frame_size: [1280, 720]
-    });
+  // Frame gönder (webcam modunda)
+  const sendFrame = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || !wsRef.current) return;
+    if (wsRef.current.readyState !== WebSocket.OPEN) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx || video.videoWidth === 0) return;
+    
+    // Canvas boyutunu ayarla
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Frame'i canvas'a çiz
+    ctx.drawImage(video, 0, 0);
+    
+    // JPEG olarak encode et
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // WebSocket'e gönder
+    try {
+      wsRef.current.send(JSON.stringify({
+        type: 'frame',
+        data: dataUrl
+      }));
+    } catch (e) {
+      console.error('Frame send error:', e);
+    }
   }, []);
 
   // Start webcam
@@ -199,32 +208,48 @@ export default function CameraPage() {
         await videoRef.current.play();
         setIsStreaming(true);
         
-        // AI tespiti başlat
-        if (aiEnabled && !wsConnected) {
+        // AI aktifse WebSocket bağlan
+        if (aiEnabled) {
           connectWebSocket();
+          
+          // Frame gönderim döngüsü başlat
+          if (sendIntervalRef.current) {
+            clearInterval(sendIntervalRef.current);
+          }
+          sendIntervalRef.current = setInterval(sendFrame, 1000 / processingFps);
         }
       }
     } catch (err) {
       console.error('Webcam error:', err);
       setError('Kamera erişimi reddedildi veya kamera bulunamadı');
     }
-  }, [aiEnabled, wsConnected, connectWebSocket]);
+  }, [aiEnabled, connectWebSocket, sendFrame, processingFps]);
 
   // Stop webcam
   const stopWebcam = useCallback(() => {
+    // Video stream durdur
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    setIsStreaming(false);
-    setDetectionResult(null);
+    
+    // Frame gönderimini durdur
+    if (sendIntervalRef.current) {
+      clearInterval(sendIntervalRef.current);
+      sendIntervalRef.current = null;
+    }
     
     // WebSocket kapat
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
+    
+    setIsStreaming(false);
+    setDetectionResult(null);
+    setWsConnected(false);
+    setWsStatus('disconnected');
   }, []);
 
   // Toggle fullscreen
@@ -248,13 +273,31 @@ export default function CameraPage() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Demo modu: WebSocket yoksa simülasyon
+  // AI toggle edildiğinde
   useEffect(() => {
-    if (isStreaming && aiEnabled && !wsConnected) {
-      const interval = setInterval(simulateDetections, 100);
-      return () => clearInterval(interval);
+    if (isStreaming) {
+      if (aiEnabled && !wsConnected) {
+        connectWebSocket();
+        if (!sendIntervalRef.current) {
+          sendIntervalRef.current = setInterval(sendFrame, 1000 / processingFps);
+        }
+      } else if (!aiEnabled) {
+        if (sendIntervalRef.current) {
+          clearInterval(sendIntervalRef.current);
+          sendIntervalRef.current = null;
+        }
+        setDetectionResult(null);
+      }
     }
-  }, [isStreaming, aiEnabled, wsConnected, simulateDetections]);
+  }, [aiEnabled, isStreaming, wsConnected, connectWebSocket, sendFrame, processingFps]);
+
+  // FPS değiştiğinde interval'i güncelle
+  useEffect(() => {
+    if (isStreaming && aiEnabled && sendIntervalRef.current) {
+      clearInterval(sendIntervalRef.current);
+      sendIntervalRef.current = setInterval(sendFrame, 1000 / processingFps);
+    }
+  }, [processingFps, isStreaming, aiEnabled, sendFrame]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -262,6 +305,14 @@ export default function CameraPage() {
       stopWebcam();
     };
   }, [stopWebcam]);
+
+  // Galeri sıfırla
+  const resetGallery = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'reset' }));
+      setGalleryCount(0);
+    }
+  }, []);
 
   // Take snapshot
   const takeSnapshot = useCallback(() => {
@@ -277,8 +328,8 @@ export default function CameraPage() {
       
       // Tespitleri de çiz
       if (detectionResult && showBboxes) {
-        const scaleX = canvas.width / (detectionResult.frame_size?.[0] || 1280);
-        const scaleY = canvas.height / (detectionResult.frame_size?.[1] || 720);
+        const scaleX = canvas.width / (detectionResult.frame_size?.[0] || canvas.width);
+        const scaleY = canvas.height / (detectionResult.frame_size?.[1] || canvas.height);
         
         detectionResult.animals.forEach(animal => {
           const [x1, y1, x2, y2] = animal.bbox;
@@ -310,19 +361,34 @@ export default function CameraPage() {
     return CLASS_COLORS[className.toLowerCase()] || CLASS_COLORS.default;
   };
 
-  // Server stream URL
-  const serverStreamUrl = '/api/stream/0';
-
   return (
     <div className="space-y-6">
+      {/* Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
+      
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">🎥 Canlı Kamera + AI</h1>
-          <p className="text-gray-500 mt-1">Gerçek zamanlı hayvan tespiti ve benzersiz ID takibi</p>
+          <h1 className="text-2xl font-bold text-gray-900">🎥 Gerçek Zamanlı AI Tespit</h1>
+          <p className="text-gray-500 mt-1">YOLOv8 + ByteTrack + Re-ID ile hayvan tanıma</p>
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Connection Status */}
+          <div className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm ${
+            wsStatus === 'connected' ? 'bg-green-100 text-green-800' :
+            wsStatus === 'connecting' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-gray-100 text-gray-600'
+          }`}>
+            {wsStatus === 'connected' ? (
+              <><CheckCircle2 className="w-4 h-4" /> Backend Bağlı</>
+            ) : wsStatus === 'connecting' ? (
+              <><RefreshCw className="w-4 h-4 animate-spin" /> Bağlanıyor...</>
+            ) : (
+              <><AlertCircle className="w-4 h-4" /> Bağlı Değil</>
+            )}
+          </div>
+          
           {/* AI Toggle */}
           <button
             onClick={() => setAiEnabled(!aiEnabled)}
@@ -341,28 +407,31 @@ export default function CameraPage() {
             className="btn-secondary flex items-center gap-2"
           >
             <Settings className="w-4 h-4" />
-            Ayarlar
           </button>
         </div>
       </div>
 
       {/* AI Stats Bar */}
-      {aiEnabled && detectionResult && (
+      {aiEnabled && wsConnected && detectionResult && (
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl p-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold">{detectionResult.animal_count}</div>
-              <div className="text-sm opacity-80">Hayvan</div>
+              <div className="text-sm opacity-80">Tespit</div>
             </div>
             <div>
               <div className="text-2xl font-bold">{detectionResult.fps?.toFixed(1) || '0'}</div>
-              <div className="text-sm opacity-80">FPS</div>
+              <div className="text-sm opacity-80">AI FPS</div>
             </div>
             <div>
               <div className="text-2xl font-bold">
                 {detectionResult.animals.filter(a => a.is_identified).length}
               </div>
               <div className="text-sm opacity-80">Tanınan</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{galleryCount}</div>
+              <div className="text-sm opacity-80">Galeri</div>
             </div>
             <div>
               <div className="text-2xl font-bold">
@@ -373,10 +442,22 @@ export default function CameraPage() {
               <div className="text-sm opacity-80">Güven</div>
             </div>
             <div>
-              <div className={`text-2xl font-bold ${wsConnected ? 'text-green-200' : 'text-yellow-200'}`}>
-                {wsConnected ? '🟢' : '🟡'} {wsConnected ? 'Canlı' : 'Demo'}
-              </div>
+              <div className="text-2xl font-bold text-green-200">🟢 Canlı</div>
               <div className="text-sm opacity-80">Mod</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <div className="font-medium">Bağlantı Hatası</div>
+            <div className="text-sm mt-1">{error}</div>
+            <div className="text-sm mt-2 text-red-600">
+              Backend&apos;i başlatmak için: <code className="bg-red-100 px-2 py-0.5 rounded">python -m uvicorn src.api.main:app --reload</code>
             </div>
           </div>
         </div>
@@ -385,7 +466,7 @@ export default function CameraPage() {
       {/* Settings Panel */}
       {showSettings && (
         <div className="card">
-          <h3 className="font-semibold text-gray-900 mb-4">Kamera ve AI Ayarları</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Ayarlar</h3>
           
           {/* Camera Mode Selection */}
           <div className="mb-4">
@@ -423,17 +504,17 @@ export default function CameraPage() {
               </button>
               <button
                 onClick={() => {
-                  setCameraMode('stream');
+                  setCameraMode('server');
                   stopWebcam();
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  cameraMode === 'stream'
+                  cameraMode === 'server'
                     ? 'bg-primary-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 <Camera className="w-4 h-4 inline mr-2" />
-                Sunucu Stream
+                Sunucu Kamera
               </button>
             </div>
           </div>
@@ -448,18 +529,33 @@ export default function CameraPage() {
                 type="text"
                 value={ipCameraUrl}
                 onChange={(e) => setIpCameraUrl(e.target.value)}
-                placeholder="rtsp://192.168.1.100:554/stream"
+                placeholder="http://192.168.1.100:8080/video"
                 className="input"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                RTSP, HTTP veya MJPEG stream URL&apos;si girin
-              </p>
             </div>
           )}
 
+          {/* Processing FPS */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              İşlem Hızı: {processingFps} FPS
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              value={processingFps}
+              onChange={(e) => setProcessingFps(Number(e.target.value))}
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Düşük FPS = Daha az CPU kullanımı, Yüksek FPS = Daha akıcı tespit
+            </p>
+          </div>
+
           {/* AI Settings */}
           <div className="border-t pt-4 mt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">AI Görüntüleme</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Görüntüleme</h4>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -481,6 +577,21 @@ export default function CameraPage() {
               </label>
             </div>
           </div>
+
+          {/* Reset Gallery */}
+          <div className="border-t pt-4 mt-4">
+            <button
+              onClick={resetGallery}
+              className="btn-secondary flex items-center gap-2"
+              disabled={!wsConnected}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Galeriyi Sıfırla ({galleryCount} hayvan)
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Tüm tanınan hayvanları sıfırlar, yeni ID&apos;ler atanır.
+            </p>
+          </div>
         </div>
       )}
 
@@ -492,34 +603,13 @@ export default function CameraPage() {
         }`}
       >
         {/* Video Element */}
-        {cameraMode === 'webcam' && (
-          <video
-            ref={videoRef}
-            className="w-full h-full object-contain"
-            autoPlay
-            playsInline
-            muted
-          />
-        )}
-
-        {/* Server Stream (MJPEG) */}
-        {cameraMode === 'stream' && isStreaming && (
-          <img
-            src={serverStreamUrl}
-            alt="Kamera Stream"
-            className="w-full h-full object-contain"
-          />
-        )}
-
-        {/* IP Camera (MJPEG) */}
-        {cameraMode === 'ip' && isStreaming && ipCameraUrl && (
-          <img
-            src={ipCameraUrl}
-            alt="IP Kamera"
-            className="w-full h-full object-contain"
-            onError={() => setError('IP kamera bağlantısı kurulamadı')}
-          />
-        )}
+        <video
+          ref={videoRef}
+          className="w-full h-full object-contain"
+          autoPlay
+          playsInline
+          muted
+        />
 
         {/* AI Detection Overlay */}
         {aiEnabled && showBboxes && detectionResult && detectionResult.animals.map((animal) => {
@@ -535,42 +625,42 @@ export default function CameraPage() {
           
           return (
             <div
-              key={animal.track_id}
-              className="absolute pointer-events-none transition-all duration-75"
+              key={`${animal.track_id}-${animal.animal_id}`}
+              className="absolute pointer-events-none transition-all duration-100"
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
                 width: `${width}%`,
                 height: `${height}%`,
                 border: `3px solid ${color}`,
-                boxShadow: `0 0 10px ${color}40`,
+                boxShadow: `0 0 15px ${color}60`,
               }}
             >
               {/* ID Label - Üst */}
               {showLabels && (
                 <div
-                  className="absolute -top-8 left-0 px-2 py-1 text-sm font-bold text-black whitespace-nowrap rounded"
+                  className="absolute -top-8 left-0 px-2 py-1 text-sm font-bold text-black whitespace-nowrap rounded shadow-lg"
                   style={{ backgroundColor: color }}
                 >
                   {animal.animal_id}
+                  {animal.is_identified && ' ✓'}
                 </div>
               )}
               
               {/* Class + Confidence - Alt */}
               {showLabels && (
                 <div
-                  className="absolute -bottom-6 left-0 px-2 py-0.5 text-xs font-medium text-white bg-black/70 rounded whitespace-nowrap"
+                  className="absolute -bottom-6 left-0 px-2 py-0.5 text-xs font-medium text-white bg-black/80 rounded whitespace-nowrap"
                 >
                   {animal.class_name} • {Math.round(animal.confidence * 100)}%
-                  {animal.is_identified && ' ✓'}
                 </div>
               )}
               
               {/* Corner indicators */}
-              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: color }} />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2" style={{ borderColor: color }} />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2" style={{ borderColor: color }} />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2" style={{ borderColor: color }} />
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-3 border-l-3" style={{ borderColor: color }} />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-3 border-r-3" style={{ borderColor: color }} />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-3 border-l-3" style={{ borderColor: color }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-3 border-r-3" style={{ borderColor: color }} />
             </div>
           );
         })}
@@ -579,27 +669,19 @@ export default function CameraPage() {
         {!isStreaming && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90">
             <CameraOff className="w-16 h-16 text-gray-600 mb-4" />
-            <p className="text-gray-400 mb-4">Kamera aktif değil</p>
+            <p className="text-gray-400 mb-2">Kamera aktif değil</p>
+            <p className="text-gray-500 text-sm mb-4">
+              {cameraMode === 'webcam' && 'Web kameranızı kullanarak gerçek zamanlı tespit yapın'}
+              {cameraMode === 'ip' && 'IP kamera URL\'si girin'}
+              {cameraMode === 'server' && 'Sunucu kamerasından stream alın'}
+            </p>
             <button
-              onClick={() => {
-                if (cameraMode === 'webcam') {
-                  startWebcam();
-                } else {
-                  setIsStreaming(true);
-                }
-              }}
+              onClick={startWebcam}
               className="btn-primary flex items-center gap-2"
             >
               <Play className="w-5 h-5" />
-              Başlat
+              Kamerayı Başlat
             </button>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="absolute top-4 left-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg">
-            {error}
           </div>
         )}
 
@@ -649,7 +731,7 @@ export default function CameraPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {detectionResult.animals.map((animal) => (
               <div
-                key={animal.track_id}
+                key={`list-${animal.track_id}-${animal.animal_id}`}
                 className="bg-gray-50 rounded-lg p-3 border-l-4"
                 style={{ borderLeftColor: getColor(animal.class_name) }}
               >
@@ -658,9 +740,13 @@ export default function CameraPage() {
                     <span className="font-bold text-gray-900">{animal.animal_id}</span>
                     <span className="ml-2 text-sm text-gray-500">{animal.class_name}</span>
                   </div>
-                  {animal.is_identified && (
+                  {animal.is_identified ? (
                     <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
                       Tanındı
+                    </span>
+                  ) : (
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      Yeni
                     </span>
                   )}
                 </div>
@@ -674,23 +760,10 @@ export default function CameraPage() {
                     <span className="text-gray-500">Re-ID:</span>
                     <span className="ml-1 font-medium">{Math.round(animal.re_id_confidence * 100)}%</span>
                   </div>
-                  {animal.behavior && (
-                    <div className="col-span-2">
-                      <span className="text-gray-500">Davranış:</span>
-                      <span className="ml-1 font-medium capitalize">{animal.behavior}</span>
-                    </div>
-                  )}
-                  {animal.health_score && (
-                    <div className="col-span-2">
-                      <span className="text-gray-500">Sağlık:</span>
-                      <span className={`ml-1 font-medium ${
-                        animal.health_score > 0.8 ? 'text-green-600' : 
-                        animal.health_score > 0.5 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {Math.round(animal.health_score * 100)}%
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-gray-500">Track:</span>
+                    <span className="ml-1 font-medium">#{animal.track_id}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -700,14 +773,23 @@ export default function CameraPage() {
 
       {/* Usage Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">💡 AI Hayvan Takip Sistemi</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Her hayvan benzersiz bir ID alır (BOV_0001, SHP_0001 gibi)</li>
-          <li>• Re-ID sistemi hayvanları vücut özelliklerinden tanır</li>
-          <li>• Kamera önünden geçen hayvanlar otomatik eşleştirilir</li>
-          <li>• Sınıf tespiti: inek, koyun, keçi, at, tavuk ve daha fazlası</li>
-          <li>• Demo modda simüle edilmiş tespitler gösterilir</li>
-        </ul>
+        <h4 className="font-semibold text-blue-900 mb-2">🔧 Kullanım</h4>
+        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+          <li>Backend&apos;i başlatın: <code className="bg-blue-100 px-1 rounded">cd ai_goruntu_isleme && source venv/bin/activate && python -m uvicorn src.api.main:app --reload</code></li>
+          <li>&quot;Kamerayı Başlat&quot; butonuna tıklayın</li>
+          <li>Kamera önüne hayvan/nesne getirin</li>
+          <li>AI otomatik tespit edip benzersiz ID atayacak</li>
+        </ol>
+        <div className="mt-3 pt-3 border-t border-blue-200">
+          <h5 className="font-medium text-blue-900 mb-1">Desteklenen Sınıflar:</h5>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(CLASS_COLORS).filter(([k]) => k !== 'default').map(([cls, color]) => (
+              <span key={cls} className="px-2 py-1 rounded text-xs text-white" style={{ backgroundColor: color }}>
+                {cls}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
