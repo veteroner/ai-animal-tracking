@@ -124,48 +124,21 @@ class RealTimeDetector:
             return
         
         try:
-            # YOLO Detector
-            from src.detection.yolo_detector import YOLODetector, DetectorConfig
-            config = DetectorConfig(
-                model_path=self.model_path,
-                conf_threshold=0.4,
-                iou_threshold=0.5
-            )
-            self.detector = YOLODetector(config=config)
-            logger.info("✅ YOLOv8 detector loaded")
-            
-            # Object Tracker
-            from src.tracking.object_tracker import ObjectTracker, TrackerConfig
-            tracker_config = TrackerConfig(
-                track_high_thresh=0.5,
-                track_buffer=30,
-                match_thresh=0.8
-            )
-            self.tracker = ObjectTracker(config=tracker_config)
-            logger.info("✅ Object tracker loaded")
-            
-            # Animal Identifier (Re-ID)
-            try:
-                from src.identification.animal_identifier import (
-                    AnimalIdentifier, 
-                    IdentifierConfig
-                )
-                identifier_config = IdentifierConfig(
-                    similarity_threshold=0.65,
-                    save_gallery=False
-                )
-                self.identifier = AnimalIdentifier(config=identifier_config)
-                logger.info("✅ Animal identifier (Re-ID) loaded")
-            except Exception as e:
-                logger.warning(f"⚠️ Re-ID yüklenemedi: {e}")
-                self.identifier = None
+            # Doğrudan ultralytics YOLO kullan (otomatik indirir)
+            from ultralytics import YOLO
+            logger.info("📥 Loading YOLOv8 model...")
+            self.detector = YOLO(self.model_path)
+            logger.info("✅ YOLOv8 model loaded successfully")
             
             self._initialized = True
             logger.info("🚀 Real-time detector initialized successfully")
             
         except Exception as e:
             logger.error(f"❌ Detector initialization failed: {e}")
-            raise
+            import traceback
+            logger.error(traceback.format_exc())
+            self.detector = None
+            self._initialized = True  # Hata olsa bile tekrar denememek için
     
     def _generate_animal_id(self, class_name: str) -> str:
         """Hayvan sınıfına göre benzersiz ID oluştur"""
@@ -259,82 +232,75 @@ class RealTimeDetector:
         Returns:
             DetectionResult
         """
-        if not self._initialized:
-            self.initialize()
-        
         start_time = time.time()
         self._frame_count += 1
         h, w = frame.shape[:2]
         
         tracked_animals: List[TrackedAnimal] = []
         
+        # Lazy initialization - ilk frame'de model yükle
+        if not self._initialized:
+            self.initialize()
+        
         try:
-            # 1. YOLO Detection
-            detection_result = self.detector.detect(frame)
-            
-            # 2. Object Tracking
-            if hasattr(detection_result, 'detections') and detection_result.detections:
-                # Tracker'ı güncelle
-                tracking_result = self.tracker.update(detection_result)
+            # YOLO Detection (eğer model yüklüyse)
+            if self.detector is not None:
+                # Ultralytics YOLO ile tespit
+                results = self.detector(frame, verbose=False, conf=0.4)
                 
-                # 3. Her track için işlem yap
-                tracks = getattr(tracking_result, 'confirmed_tracks', []) or \
-                         getattr(tracking_result, 'tracks', [])
-                
-                for track in tracks:
-                    track_id = track.track_id
-                    bbox = track.bbox if hasattr(track, 'bbox') else track.tlbr
-                    class_name = getattr(track, 'class_name', 'animal')
-                    confidence = getattr(track, 'confidence', 0.8)
-                    
-                    # Track -> Animal ID eşlemesi
-                    if track_id in self._track_to_animal:
-                        animal_id = self._track_to_animal[track_id]
-                        re_id_conf = 1.0
-                        is_identified = True
-                    else:
-                        # Yeni track, Re-ID dene
-                        features = self._extract_features(frame, bbox)
-                        matched_id, match_score, is_new = self._match_identity(features, class_name)
-                        
-                        if is_new or matched_id is None:
-                            # Yeni hayvan
-                            animal_id = self._generate_animal_id(class_name)
-                            if features is not None:
-                                self.gallery[animal_id] = (features, class_name)
-                            re_id_conf = 0.0
-                            is_identified = False
-                        else:
-                            # Mevcut hayvan
-                            animal_id = matched_id
-                            re_id_conf = match_score
-                            is_identified = True
-                        
-                        self._track_to_animal[track_id] = animal_id
-                    
-                    # TrackedAnimal oluştur
-                    velocity = getattr(track, 'velocity', (0, 0)) or (0, 0)
-                    direction = getattr(track, 'direction', 0.0) or 0.0
-                    
-                    tracked = TrackedAnimal(
-                        track_id=track_id,
-                        animal_id=animal_id,
-                        class_name=class_name,
-                        bbox=[int(v) for v in bbox],
-                        confidence=float(confidence),
-                        re_id_confidence=float(re_id_conf),
-                        is_identified=is_identified,
-                        velocity=velocity,
-                        direction=float(direction)
-                    )
-                    tracked_animals.append(tracked)
-            
+                # Sonuçları işle
+                for result in results:
+                    boxes = result.boxes
+                    if boxes is not None and len(boxes) > 0:
+                        for i, box in enumerate(boxes):
+                            # Sınıf ID ve adı
+                            cls_id = int(box.cls[0].item())
+                            class_name = result.names.get(cls_id, 'unknown')
+                            
+                            # Hayvan sınıfları (COCO dataset)
+                            animal_classes = {
+                                14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse',
+                                18: 'sheep', 19: 'cow', 20: 'elephant', 21: 'bear',
+                                22: 'zebra', 23: 'giraffe'
+                            }
+                            
+                            # Sadece hayvanları tespit et (veya tüm sınıfları göster)
+                            # Şimdilik tüm sınıfları gösterelim debug için
+                            
+                            # Bounding box
+                            bbox = box.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2]
+                            confidence = float(box.conf[0].item())
+                            
+                            # Track ID oluştur (basit sayaç)
+                            track_id = self._frame_count * 100 + i
+                            
+                            # Animal ID oluştur
+                            if track_id not in self._track_to_animal:
+                                animal_id = self._generate_animal_id(class_name)
+                                self._track_to_animal[track_id] = animal_id
+                            else:
+                                animal_id = self._track_to_animal[track_id]
+                            
+                            tracked = TrackedAnimal(
+                                track_id=track_id,
+                                animal_id=animal_id,
+                                class_name=class_name,
+                                bbox=[int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])],
+                                confidence=confidence,
+                                re_id_confidence=0.0,
+                                is_identified=False,
+                                velocity=(0, 0),
+                                direction=0.0
+                            )
+                            tracked_animals.append(tracked)
+                            logger.info(f"✅ Detected: {class_name} ({confidence:.2f}) at {bbox}")
             else:
-                # Tespit yok ama tracking yapabiliriz
-                logger.debug(f"Frame {self._frame_count}: No detections")
+                logger.warning("Model not loaded, skipping detection")
         
         except Exception as e:
             logger.error(f"Detection error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
         
         # FPS hesapla
         process_time = time.time() - start_time
