@@ -5,12 +5,12 @@ python-dotenv==1.0.1
 pydantic==2.9.2
 pydantic-settings==2.5.2
 
-# Image Processing
-opencv-python-headless==4.10.0.84
-numpy==2.0.2
+# Image Processing  
+opencv-python-headless==4.8.1.78
+numpy==1.26.4
 pillow==10.4.0
 
-# YOLO (ultralytics will install torch automatically)
+# YOLO
 ultralytics==8.2.103
 
 # Database
@@ -20,7 +20,3 @@ sqlalchemy==2.0.35
 python-multipart==0.0.9
 aiofiles==24.1.0
 requests==2.32.3
-
-# Optional
-redis>=4.0.0
-aiohttp>=3.8.0
