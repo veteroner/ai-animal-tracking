@@ -560,6 +560,73 @@ async def stop_camera():
 
 
 # ===========================================
+# HTTP Frame Processing Endpoint (Polling Alternative)
+# ===========================================
+
+@router.post("/process-frame")
+async def process_frame_http(request_data: dict):
+    """
+    HTTP üzerinden frame işleme endpoint'i.
+    WebSocket alternatifi olarak çalışır.
+    
+    Request body:
+    {
+        "frame": "base64 encoded JPEG image",
+        "camera_id": 0 (optional)
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "result": DetectionResult
+    }
+    """
+    try:
+        frame_data = request_data.get("frame", "")
+        
+        if not frame_data:
+            return {"success": False, "error": "No frame data provided"}
+        
+        # Base64 decode
+        if "base64," in frame_data:
+            frame_data = frame_data.split("base64,")[1]
+        
+        try:
+            img_bytes = base64.b64decode(frame_data)
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        except Exception as e:
+            return {"success": False, "error": f"Failed to decode image: {str(e)}"}
+        
+        if frame is None:
+            return {"success": False, "error": "Invalid image data"}
+        
+        # Frame'i işle
+        result = detector.process_frame(frame)
+        
+        if result:
+            return {
+                "success": True,
+                "result": result.to_dict()
+            }
+        else:
+            return {
+                "success": True,
+                "result": {
+                    "frame_id": detector.frame_count,
+                    "timestamp": time.time(),
+                    "fps": 0,
+                    "animal_count": 0,
+                    "animals": [],
+                    "frame_size": [frame.shape[1], frame.shape[0]]
+                }
+            }
+    except Exception as e:
+        logger.error(f"Frame processing error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ===========================================
 # WebSocket Endpoint
 # ===========================================
 
