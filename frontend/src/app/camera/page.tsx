@@ -86,8 +86,8 @@ export default function CameraPage() {
   const wsRef = useRef<WebSocket | null>(null);
   const sendIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Backend URL
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  // Backend URL - Production: Render.com
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-animal-tracking-api.onrender.com';
   const wsUrl = backendUrl.replace('http', 'ws') + '/api/v1/detection/ws';
 
   // WebSocket bağlantısı
