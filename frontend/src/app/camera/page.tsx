@@ -29,6 +29,7 @@ interface TrackedAnimal {
   confidence: number;
   re_id_confidence: number;
   is_identified: boolean;
+  is_new: boolean;  // Yeni hayvan mı?
   velocity: [number, number];
   direction: number;
   health_score: number | null;
@@ -40,21 +41,31 @@ interface DetectionResult {
   timestamp: number;
   fps: number;
   animal_count: number;
+  total_registered: number;  // Toplam kayıtlı hayvan
+  new_this_frame: number;    // Bu frame'de yeni kaydedilen
   animals: TrackedAnimal[];
   frame_size: [number, number];
 }
 
-// Sınıf renk paleti
+// Sınıf renk paleti - Türkçe isimler için de
 const CLASS_COLORS: Record<string, string> = {
   cow: '#22c55e',
   cattle: '#22c55e',
+  inek: '#22c55e',
   sheep: '#f97316',
+  koyun: '#f97316',
   goat: '#d946ef',
+  keci: '#d946ef',
   horse: '#3b82f6',
+  at: '#3b82f6',
   chicken: '#eab308',
+  tavuk: '#eab308',
   bird: '#eab308',
+  kus: '#eab308',
   dog: '#ef4444',
+  kopek: '#ef4444',
   cat: '#8b5cf6',
+  kedi: '#8b5cf6',
   person: '#06b6d4',
   default: '#06b6d4',
 };
@@ -79,8 +90,8 @@ export default function CameraPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const processingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Backend URL
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-animal-tracking-api.onrender.com';
+  // Backend URL - Yerel ağ (telefon erişimi için)
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.20.10.3:8000';
 
   // Backend bağlantısını kontrol et
   const checkBackend = useCallback(async () => {
@@ -376,13 +387,31 @@ export default function CameraPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-600" />Tespit İstatistikleri
+              <Activity className="w-5 h-5 text-primary-600" />Otomatik Re-ID
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between"><span className="text-gray-600">Toplam Tespit</span><span className="font-semibold">{detectionResult?.animal_count || 0}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Frame ID</span><span className="font-semibold">{detectionResult?.frame_id || 0}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">İşleme FPS</span><span className="font-semibold">{detectionResult?.fps?.toFixed(1) || 0}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Backend</span><span className={`font-semibold ${backendConnected ? 'text-green-600' : 'text-red-600'}`}>{backendConnected ? 'Bağlı' : 'Bağlı Değil'}</span></div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Kayıtlı Hayvan</span>
+                <span className="font-semibold text-green-600">{detectionResult?.total_registered || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Bu Frame Tespit</span>
+                <span className="font-semibold">{detectionResult?.animal_count || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Yeni Kaydedilen</span>
+                <span className="font-semibold text-blue-600">{detectionResult?.new_this_frame || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">İşleme FPS</span>
+                <span className="font-semibold">{detectionResult?.fps?.toFixed(1) || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Backend</span>
+                <span className={`font-semibold ${backendConnected ? 'text-green-600' : 'text-red-600'}`}>
+                  {backendConnected ? 'Bağlı' : 'Bağlı Değil'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -394,8 +423,16 @@ export default function CameraPage() {
                   <div key={animal.track_id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CLASS_COLORS[animal.class_name.toLowerCase()] || CLASS_COLORS.default }} />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{animal.animal_id}</p>
-                      <p className="text-xs text-gray-500">{animal.class_name} • {(animal.confidence * 100).toFixed(0)}%</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 truncate">{animal.animal_id}</p>
+                        {animal.is_new && (
+                          <span className="px-1.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700 rounded">YENİ</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {animal.class_name} • {(animal.confidence * 100).toFixed(0)}%
+                        {animal.is_identified && ' • Tanındı'}
+                      </p>
                     </div>
                     {animal.is_identified && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                   </div>

@@ -42,18 +42,18 @@ const healthDistribution = [
   { name: 'Hasta', value: 5, color: '#ef4444' },
 ];
 
-// Mock alerts data
+// Mock alerts data - sabit tarihler (hydration error önleme)
 const mockAlerts = [
-  { id: 1, message: 'Sarıkız - Düşük aktivite tespit edildi', severity: 'medium', created_at: new Date().toISOString() },
-  { id: 2, message: 'Karantina bölgesinde hareket algılandı', severity: 'high', created_at: new Date().toISOString() },
-  { id: 3, message: 'Kamera 2 bağlantısı kesildi', severity: 'low', created_at: new Date().toISOString() },
+  { id: 1, message: 'Sarıkız - Düşük aktivite tespit edildi', severity: 'medium', created_at: '2025-12-04T12:00:00Z' },
+  { id: 2, message: 'Karantina bölgesinde hareket algılandı', severity: 'high', created_at: '2025-12-04T11:30:00Z' },
+  { id: 3, message: 'Kamera 2 bağlantısı kesildi', severity: 'low', created_at: '2025-12-04T11:00:00Z' },
 ];
 
-// Mock detections data
+// Mock detections data - sabit tarihler
 const mockDetections = [
-  { id: 1, class_name: 'İnek', confidence: 0.95, detection_time: new Date().toISOString() },
-  { id: 2, class_name: 'Buzağı', confidence: 0.88, detection_time: new Date().toISOString() },
-  { id: 3, class_name: 'Boğa', confidence: 0.92, detection_time: new Date().toISOString() },
+  { id: 1, class_name: 'İnek', confidence: 0.95, detection_time: '2025-12-04T12:00:00Z' },
+  { id: 2, class_name: 'Buzağı', confidence: 0.88, detection_time: '2025-12-04T11:55:00Z' },
+  { id: 3, class_name: 'Boğa', confidence: 0.92, detection_time: '2025-12-04T11:50:00Z' },
 ];
 
 export default function Dashboard() {

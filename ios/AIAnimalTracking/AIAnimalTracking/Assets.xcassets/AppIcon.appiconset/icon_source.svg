@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#127A50"/>
+      <stop offset="100%" style="stop-color:#3B6DF2"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F1B538"/>
+      <stop offset="100%" style="stop-color:#FFC84F"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="230" fill="url(#bgGradient)"/>
+  
+  <!-- Inner glow circle -->
+  <circle cx="512" cy="480" r="280" fill="white" fill-opacity="0.15"/>
+  
+  <!-- AI Eye - Outer -->
+  <ellipse cx="512" cy="420" rx="200" ry="110" fill="none" stroke="white" stroke-width="18"/>
+  
+  <!-- AI Eye - Pupil -->
+  <circle cx="512" cy="420" r="55" fill="white"/>
+  
+  <!-- Scanning line -->
+  <rect x="320" y="415" width="384" height="10" rx="5" fill="url(#accentGradient)"/>
+  
+  <!-- Paw Print -->
+  <g transform="translate(512, 620)" fill="url(#accentGradient)">
+    <!-- Main pad -->
+    <ellipse cx="0" cy="40" rx="65" ry="55"/>
+    <!-- Toes -->
+    <ellipse cx="-70" cy="-20" rx="30" ry="35" transform="rotate(-15)"/>
+    <ellipse cx="-25" cy="-50" rx="28" ry="32" transform="rotate(-5)"/>
+    <ellipse cx="25" cy="-50" rx="28" ry="32" transform="rotate(5)"/>
+    <ellipse cx="70" cy="-20" rx="30" ry="35" transform="rotate(15)"/>
+  </g>
+  
+  <!-- Teknova Text (subtle) -->
+  <text x="512" y="880" text-anchor="middle" font-family="SF Pro Rounded, -apple-system, sans-serif" 
+        font-size="72" font-weight="700" fill="white" fill-opacity="0.9" letter-spacing="8">
+    TEKNOVA
+  </text>
+</svg>

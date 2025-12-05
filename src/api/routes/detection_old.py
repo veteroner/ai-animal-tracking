@@ -66,7 +66,7 @@ else:
 
 
 # ===========================================
-# Data Classes
+# Data Classes (Backward Compatibility)
 # ===========================================
 
 @dataclass
@@ -212,7 +212,7 @@ class RealTimeDetector:
                         is_identified=not animal.animal_id.startswith("TEMP_"),
                         is_new=animal.is_new,
                         velocity=animal.velocity,
-                        direction=0.0,
+                        direction=animal.direction if hasattr(animal, 'direction') else 0.0,
                     )
                     tracked_animals.append(tracked)
                     
@@ -276,6 +276,50 @@ class RealTimeDetector:
         """Galeriyi kaydet"""
         if auto_reid:
             auto_reid.save()
+
+
+# Global detector instance
+detector = RealTimeDetector()
+            logger.error(f"Detection error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # FPS hesapla
+        process_time = time.time() - start_time
+        current_fps = 1.0 / process_time if process_time > 0 else 0
+        self._fps_history.append(current_fps)
+        if len(self._fps_history) > 30:
+            self._fps_history.pop(0)
+        avg_fps = sum(self._fps_history) / len(self._fps_history)
+        
+        return DetectionResult(
+            frame_id=self._frame_count,
+            timestamp=time.time(),
+            fps=avg_fps,
+            animal_count=len(tracked_animals),
+            animals=tracked_animals,
+            frame_size=(w, h)
+        )
+    
+    def get_gallery_info(self) -> dict:
+        """Galeri bilgisi"""
+        return {
+            "count": len(self.gallery),
+            "animals": [
+                {"animal_id": aid, "class": cls}
+                for aid, (_, cls) in self.gallery.items()
+            ]
+        }
+    
+    def reset(self):
+        """Tracker ve galeriyi sıfırla"""
+        self._track_to_animal.clear()
+        self._animal_counter.clear()
+        self.gallery.clear()
+        self._frame_count = 0
+        self._fps_history.clear()
+        if self.tracker:
+            self.tracker.reset()
 
 
 # Global detector instance
@@ -344,6 +388,7 @@ class CameraStream:
         if not self.cap.isOpened():
             raise RuntimeError(f"Cannot open camera: {source}")
         
+        # Kamera ayarları
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -367,10 +412,15 @@ class CameraStream:
         logger.info("Camera closed")
     
     async def stream_loop(self, source: int = 0, fps_limit: int = 30):
-        """Kamera stream döngüsü"""
+        """
+        Kamera stream döngüsü.
+        Her frame'i işleyip WebSocket'e gönderir.
+        """
         try:
             self.open(source)
             self.is_running = True
+            
+            # Detector'ı initialize et
             detector.initialize()
             
             frame_interval = 1.0 / fps_limit
@@ -383,14 +433,18 @@ class CameraStream:
                     await asyncio.sleep(0.1)
                     continue
                 
+                # Tespit yap
                 result = detector.process_frame(frame)
+                
+                # WebSocket'e gönder
                 await manager.broadcast(result.to_dict())
                 
+                # FPS limiti
                 elapsed = time.time() - start
                 if elapsed < frame_interval:
                     await asyncio.sleep(frame_interval - elapsed)
                 else:
-                    await asyncio.sleep(0.001)
+                    await asyncio.sleep(0.001)  # Minimal sleep
                     
         except Exception as e:
             logger.error(f"Stream error: {e}")
@@ -408,55 +462,26 @@ camera_stream = CameraStream()
 @router.get("/status")
 async def get_status():
     """Detector durumu"""
-    gallery_info = detector.get_gallery_info()
     return {
         "initialized": detector._initialized,
         "frame_count": detector._frame_count,
-        "gallery_size": gallery_info.get("count", 0),
-        "gallery_by_class": gallery_info.get("by_class", {}),
+        "gallery_size": len(detector.gallery),
         "active_connections": len(manager.active_connections),
-        "camera_running": camera_stream.is_running,
-        "auto_reid_available": AUTO_REID_AVAILABLE,
+        "camera_running": camera_stream.is_running
     }
 
 
 @router.get("/gallery")
 async def get_gallery():
-    """Tüm kayıtlı hayvanlar listesi"""
+    """Tanınan hayvanlar listesi"""
     return detector.get_gallery_info()
-
-
-@router.get("/animals")
-async def get_all_animals():
-    """Tüm hayvanların detaylı listesi"""
-    if auto_reid:
-        return {
-            "count": auto_reid.gallery.size,
-            "animals": auto_reid.get_all_animals(),
-            "stats": auto_reid.get_stats(),
-        }
-    return {"count": 0, "animals": [], "stats": {}}
 
 
 @router.post("/reset")
 async def reset_detector():
-    """Tracker'ı sıfırla (galeri korunur)"""
+    """Detector'ı sıfırla"""
     detector.reset()
-    return {"status": "ok", "message": "Detector reset (galeri korundu)"}
-
-
-@router.post("/reset-all")
-async def reset_all():
-    """Galeri dahil her şeyi sıfırla"""
-    detector.reset_all()
-    return {"status": "ok", "message": "Galeri dahil her şey sıfırlandı!"}
-
-
-@router.post("/save")
-async def save_gallery():
-    """Galeriyi kaydet"""
-    detector.save_gallery()
-    return {"status": "ok", "message": "Galeri kaydedildi"}
+    return {"status": "ok", "message": "Detector reset"}
 
 
 @router.post("/start/{camera_id}")
@@ -465,6 +490,7 @@ async def start_camera(camera_id: int = 0):
     if camera_stream.is_running:
         return {"status": "already_running"}
     
+    # Background task olarak başlat
     camera_stream._task = asyncio.create_task(
         camera_stream.stream_loop(camera_id)
     )
@@ -482,79 +508,25 @@ async def stop_camera():
 
 
 # ===========================================
-# HTTP Frame Processing Endpoint (Multipart - for Mobile)
+# HTTP Frame Processing Endpoint (Polling Alternative)
 # ===========================================
 
-from fastapi import File, UploadFile
-
 @router.post("/process-frame")
-async def process_frame_multipart(file: UploadFile = File(...)):
+async def process_frame_http(request_data: dict):
     """
-    Multipart form-data üzerinden frame işleme - MOBİL UYGULAMALAR İÇİN.
-    
-    Request:
-        file: JPEG/PNG image file
-    
-    Returns:
-    {
-        "frame_id": 1,
-        "fps": 15.0,
-        "animal_count": 2,
-        "total_registered": 5,
-        "new_this_frame": 1,
-        "animals": [...]
-    }
-    """
-    try:
-        # Dosyayı oku
-        contents = await file.read()
-        
-        # Numpy array'e dönüştür
-        nparr = np.frombuffer(contents, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if frame is None:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Invalid image data"}
-            )
-        
-        # Frame'i işle - TAM OTOMATİK
-        result = detector.process_frame(frame)
-        
-        # Mobil uygulamaya uygun format döndür
-        return result.to_dict()
-        
-    except Exception as e:
-        logger.error(f"Frame processing error: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
-
-
-@router.post("/process-frame-base64")
-async def process_frame_base64(request_data: dict):
-    """
-    HTTP üzerinden frame işleme - TAM OTOMATİK.
+    HTTP üzerinden frame işleme endpoint'i.
+    WebSocket alternatifi olarak çalışır.
     
     Request body:
     {
-        "frame": "base64 encoded JPEG image"
+        "frame": "base64 encoded JPEG image",
+        "camera_id": 0 (optional)
     }
     
     Returns:
     {
         "success": true,
-        "result": {
-            "frame_id": 1,
-            "animal_count": 2,
-            "total_registered": 5,
-            "new_this_frame": 1,
-            "animals": [...]
-        }
+        "result": DetectionResult
     }
     """
     try:
@@ -577,14 +549,26 @@ async def process_frame_base64(request_data: dict):
         if frame is None:
             return {"success": False, "error": "Invalid image data"}
         
-        # Frame'i işle - TAM OTOMATİK
+        # Frame'i işle
         result = detector.process_frame(frame)
         
-        return {
-            "success": True,
-            "result": result.to_dict()
-        }
-        
+        if result:
+            return {
+                "success": True,
+                "result": result.to_dict()
+            }
+        else:
+            return {
+                "success": True,
+                "result": {
+                    "frame_id": detector.frame_count,
+                    "timestamp": time.time(),
+                    "fps": 0,
+                    "animal_count": 0,
+                    "animals": [],
+                    "frame_size": [frame.shape[1], frame.shape[0]]
+                }
+            }
     except Exception as e:
         logger.error(f"Frame processing error: {e}")
         return {"success": False, "error": str(e)}
@@ -599,23 +583,28 @@ async def detection_websocket(websocket: WebSocket):
     """
     Gerçek zamanlı tespit WebSocket endpoint'i.
     
-    TAM OTOMATİK:
-    - Yeni hayvanlar otomatik kaydedilir
-    - ID'ler otomatik atanır
-    - Kullanıcı müdahalesi yok
+    Client'tan gelen komutlar:
+    - {"type": "start", "camera": 0} - Kamera başlat
+    - {"type": "stop"} - Kamera durdur
+    - {"type": "ping"} - Heartbeat
+    - {"type": "frame", "data": "base64..."} - Client'tan frame (webcam)
+    
+    Server'dan gönderilen mesajlar:
+    - DetectionResult (her frame için)
     """
     await manager.connect(websocket)
     
     try:
+        # Bağlantı durumu
         await websocket.send_json({
             "type": "connected",
-            "message": "Otomatik Re-ID sistemi bağlandı",
-            "auto_reid": AUTO_REID_AVAILABLE,
+            "message": "Detection WebSocket connected",
             "timestamp": datetime.now().isoformat()
         })
         
         while True:
             try:
+                # Client'tan mesaj bekle
                 data = await asyncio.wait_for(
                     websocket.receive_text(),
                     timeout=60.0
@@ -631,6 +620,7 @@ async def detection_websocket(websocket: WebSocket):
                     })
                 
                 elif msg_type == "start":
+                    # Server kamerasını başlat
                     camera_id = message.get("camera", 0)
                     if not camera_stream.is_running:
                         camera_stream._task = asyncio.create_task(
@@ -643,6 +633,7 @@ async def detection_websocket(websocket: WebSocket):
                     })
                 
                 elif msg_type == "stop":
+                    # Stream durdur
                     camera_stream.is_running = False
                     await websocket.send_json({
                         "type": "status",
@@ -650,10 +641,12 @@ async def detection_websocket(websocket: WebSocket):
                     })
                 
                 elif msg_type == "frame":
-                    # Client'tan gelen frame - TAM OTOMATİK işle
+                    # Client'tan gelen frame (webcam modunda)
                     frame_data = message.get("data", "")
                     if frame_data:
+                        # Base64 decode
                         try:
+                            # data:image/jpeg;base64, prefix'i varsa kaldır
                             if "," in frame_data:
                                 frame_data = frame_data.split(",")[1]
                             
@@ -662,6 +655,7 @@ async def detection_websocket(websocket: WebSocket):
                             frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                             
                             if frame is not None:
+                                # Tespit yap
                                 result = detector.process_frame(frame)
                                 await websocket.send_json(result.to_dict())
                             else:
@@ -677,33 +671,32 @@ async def detection_websocket(websocket: WebSocket):
                             })
                 
                 elif msg_type == "reset":
+                    # Galeri ve tracker sıfırla
                     detector.reset()
                     await websocket.send_json({
                         "type": "status",
                         "status": "reset",
-                        "message": "Tracker sıfırlandı (galeri korundu)"
+                        "message": "Detector reset complete"
                     })
                 
                 elif msg_type == "gallery":
-                    gallery = detector.get_gallery_info()
+                    # Galeri bilgisi
                     await websocket.send_json({
                         "type": "gallery",
-                        "data": gallery
+                        **detector.get_gallery_info()
                     })
                 
-                elif msg_type == "stats":
-                    if auto_reid:
-                        stats = auto_reid.get_stats()
-                        await websocket.send_json({
-                            "type": "stats",
-                            "data": stats
-                        })
-                
             except asyncio.TimeoutError:
-                await websocket.send_json({"type": "ping"})
+                # Heartbeat gönder
+                await websocket.send_json({
+                    "type": "heartbeat",
+                    "timestamp": datetime.now().isoformat(),
+                    "gallery_size": len(detector.gallery),
+                    "frame_count": detector._frame_count
+                })
                 
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected")
+        logger.info("Detection WebSocket disconnected")
     except Exception as e:
         logger.error(f"Detection WebSocket error: {e}")
     finally:
@@ -716,10 +709,19 @@ async def detection_websocket(websocket: WebSocket):
 
 @router.post("/analyze")
 async def analyze_frame(frame_data: dict):
-    """Tek bir frame analizi"""
+    """
+    Tek bir frame analizi.
+    
+    Request body:
+    {
+        "frame": "base64 encoded image",
+        "format": "jpeg" | "png"
+    }
+    """
     try:
         frame_b64 = frame_data.get("frame", "")
         
+        # data URL prefix varsa kaldır
         if "," in frame_b64:
             frame_b64 = frame_b64.split(",")[1]
         
@@ -730,6 +732,7 @@ async def analyze_frame(frame_data: dict):
         if frame is None:
             raise HTTPException(status_code=400, detail="Invalid image data")
         
+        # Initialize if needed
         if not detector._initialized:
             detector.initialize()
         
