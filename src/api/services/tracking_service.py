@@ -17,8 +17,14 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 from dataclasses import dataclass, field
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    cv2 = None
+    np = None
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +230,7 @@ class TrackingService:
         finally:
             cap.stop()
     
-    def _process_frame(self, camera_id: str, frame: np.ndarray) -> dict:
+    def _process_frame(self, camera_id: str, frame: Any) -> dict:
         """Process a single frame through the pipeline."""
         result = {
             "camera_id": camera_id,
@@ -234,6 +240,9 @@ class TrackingService:
             "behaviors": [],
             "alerts": []
         }
+        
+        if not CV2_AVAILABLE:
+            return result
         
         # Detection
         detection_result = self._detector.detect(frame)

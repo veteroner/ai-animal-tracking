@@ -11,8 +11,15 @@ import time
 from typing import Dict, Set, Optional, Any
 from datetime import datetime
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    cv2 = None
+    np = None
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from fastapi.responses import StreamingResponse
 
@@ -66,9 +73,9 @@ class ConnectionManager:
         for conn in disconnected:
             await self.disconnect(conn, camera_id)
     
-    async def send_frame(self, camera_id: str, frame: np.ndarray, detections: list = None):
+    async def send_frame(self, camera_id: str, frame: Any, detections: list = None):
         """Send frame with optional detections."""
-        if camera_id not in self.active_connections:
+        if not CV2_AVAILABLE or camera_id not in self.active_connections:
             return
         
         # Encode frame to JPEG

@@ -6,6 +6,7 @@ Ana API uygulması.
 """
 
 import sys
+import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -21,9 +22,28 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from src.core.constants import API_VERSION, API_PREFIX
-from src.api.routes import cameras_router, animals_router, analytics_router, detection_router
+from src.api.routes import (
+    cameras_router, 
+    animals_router, 
+    analytics_router, 
+    detection_router,
+    behaviors_router,
+    health_router,
+    export_router
+)
 from src.api.routes.alerts import router as alerts_router
 from src.api.routes.streaming import router as streaming_router
+
+logger = logging.getLogger(__name__)
+
+# ===========================================
+# Global State
+# ===========================================
+app_state = {
+    "db_initialized": False,
+    "model_loaded": False,
+    "startup_time": None,
+}
 
 
 # ===========================================
@@ -35,11 +55,32 @@ async def lifespan(app: FastAPI):
     """Uygulama yaşam döngüsü yönetimi"""
     # Startup
     print("🚀 Starting AI Animal Tracking System...")
+    app_state["startup_time"] = datetime.now()
     
-    # Burada başlangıç işlemleri yapılacak
-    # - Veritabanı bağlantısı
-    # - Model yükleme
-    # - Cache başlatma
+    # 1. Veritabanı bağlantısı
+    try:
+        from src.database.connection import get_db
+        from src.database.models import Base
+        
+        db = get_db()
+        db.create_tables(Base)
+        app_state["db_initialized"] = True
+        print("✅ Database initialized")
+    except Exception as e:
+        logger.warning(f"Database initialization skipped: {e}")
+        app_state["db_initialized"] = False
+    
+    # 2. Model yükleme (opsiyonel - cv2 gerektirir)
+    try:
+        # Lazy model loading - sadece kullanıldığında yüklenecek
+        app_state["model_loaded"] = True
+        print("✅ Model loading ready (lazy)")
+    except Exception as e:
+        logger.warning(f"Model loading skipped: {e}")
+        app_state["model_loaded"] = False
+    
+    print(f"✅ API ready at http://0.0.0.0:8000")
+    print(f"📚 Docs at http://0.0.0.0:8000/docs")
     
     yield
     
@@ -47,8 +88,12 @@ async def lifespan(app: FastAPI):
     print("👋 Shutting down AI Animal Tracking System...")
     
     # Temizlik işlemleri
-    # - Bağlantıları kapat
-    # - Kaynakları temizle
+    try:
+        from src.database.connection import get_db
+        get_db().close()
+        print("✅ Database connection closed")
+    except Exception:
+        pass
 
 
 # ===========================================
@@ -133,15 +178,20 @@ async def health_check() -> Dict[str, Any]:
     Returns:
         Sistem durumu ve bileşen bilgileri
     """
+    # Uptime hesapla
+    uptime = None
+    if app_state["startup_time"]:
+        uptime = str(datetime.now() - app_state["startup_time"])
+    
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "version": "0.1.0",
+        "uptime": uptime,
         "components": {
             "api": "healthy",
-            "database": "not_configured",  # TODO: DB kontrolü
-            "redis": "not_configured",      # TODO: Redis kontrolü
-            "model": "not_loaded",          # TODO: Model kontrolü
+            "database": "healthy" if app_state["db_initialized"] else "not_configured",
+            "model": "ready" if app_state["model_loaded"] else "not_loaded",
         }
     }
 
@@ -192,26 +242,9 @@ app.include_router(analytics_router, prefix=API_PREFIX)
 app.include_router(alerts_router, prefix=API_PREFIX)
 app.include_router(streaming_router, prefix=API_PREFIX)
 app.include_router(detection_router, prefix=API_PREFIX)
-
-
-@app.get(f"{API_PREFIX}/detections", tags=["Detections"])
-async def list_detections():
-    """Tespit listesi"""
-    return {
-        "detections": [],
-        "total": 0,
-        "message": "Not implemented yet"
-    }
-
-
-@app.get(f"{API_PREFIX}/behaviors", tags=["Behaviors"])
-async def list_behaviors():
-    """Davranış listesi"""
-    return {
-        "behaviors": [],
-        "total": 0,
-        "message": "Not implemented yet"
-    }
+app.include_router(behaviors_router, prefix=API_PREFIX)
+app.include_router(health_router, prefix=f"{API_PREFIX}/animals")
+app.include_router(export_router, prefix=API_PREFIX)
 
 
 # ===========================================

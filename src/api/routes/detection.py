@@ -22,8 +22,15 @@ from typing import Dict, Set, Optional, Any, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    cv2 = None
+    np = None
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -171,7 +178,7 @@ class RealTimeDetector:
             logger.error(traceback.format_exc())
             self._initialized = True
     
-    def process_frame(self, frame: np.ndarray) -> DetectionResult:
+    def process_frame(self, frame: Any) -> DetectionResult:
         """
         Tek bir frame'i işle - TAM OTOMATİK.
         
@@ -181,6 +188,13 @@ class RealTimeDetector:
         3. Daha önce görülenleri tanı
         4. Sonuç döndür
         """
+        if not CV2_AVAILABLE:
+            return DetectionResult(
+                frame_id=0, timestamp="", detections=[],
+                total_registered=0, new_this_frame=0,
+                processing_time_ms=0, frame_size=(0, 0)
+            )
+            
         start_time = time.time()
         self._frame_count += 1
         h, w = frame.shape[:2]
@@ -331,13 +345,16 @@ class CameraStream:
     """Kamera stream yöneticisi"""
     
     def __init__(self):
-        self.cap: Optional[cv2.VideoCapture] = None
+        self.cap: Optional[Any] = None  # cv2.VideoCapture
         self.source: Optional[Any] = None
         self.is_running = False
         self._task: Optional[asyncio.Task] = None
     
     def open(self, source: int = 0):
         """Kamera aç"""
+        if not CV2_AVAILABLE:
+            raise RuntimeError("OpenCV (cv2) is not available")
+            
         self.source = source
         self.cap = cv2.VideoCapture(source)
         
@@ -350,7 +367,7 @@ class CameraStream:
         
         logger.info(f"Camera opened: {source}")
     
-    def read(self) -> Optional[np.ndarray]:
+    def read(self) -> Optional[Any]:
         """Frame oku"""
         if self.cap is None or not self.cap.isOpened():
             return None
@@ -368,6 +385,9 @@ class CameraStream:
     
     async def stream_loop(self, source: int = 0, fps_limit: int = 30):
         """Kamera stream döngüsü"""
+        if not CV2_AVAILABLE:
+            raise RuntimeError("OpenCV (cv2) is not available")
+            
         try:
             self.open(source)
             self.is_running = True

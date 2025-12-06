@@ -10,11 +10,24 @@ import base64
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+import logging
 
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    cv2 = None
+    np = None
 
-from src.api.services import CameraService
+logger = logging.getLogger(__name__)
+
+# Lazy import for camera service
+try:
+    from src.api.services import CameraService
+except ImportError:
+    CameraService = None
 
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
@@ -58,8 +71,13 @@ class CameraListResponse(BaseModel):
 # Service instance
 # ===========================================
 
-def get_camera_service() -> CameraService:
+def get_camera_service():
     """Get camera service instance."""
+    if CameraService is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Camera service not available"
+        )
     return CameraService.get_instance()
 
 
