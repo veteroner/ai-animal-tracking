@@ -706,6 +706,84 @@ ai_goruntu_isleme/
 
 ---
 
+### 📌 FAZ 17: Üreme Modülü - Sığır ve Koyun (Hafta 27-31)
+
+#### 17.1 Kızgınlık (Estrus) Tespiti
+- [x] Atlama davranışı tespiti (mounting detection)
+- [x] Atlanmaya izin verme tespiti (standing heat)
+- [x] Huzursuzluk/gezinme analizi
+- [x] Kuyruk kaldırma/sallama tespiti
+- [x] Sosyal etkileşim artışı analizi
+- [x] Aktivite seviyesi değişimi
+- [x] Optimal tohumlama zamanı hesaplama
+
+#### 17.2 Gebelik Takibi
+- [x] Gebelik kaydı oluşturma
+- [x] Beklenen doğum tarihi hesaplama (sığır: 283 gün, koyun: 150 gün)
+- [x] Gebelik durumu izleme
+- [x] Boğa/koç bilgisi kaydı
+- [x] Gebelik onay yöntemi takibi
+
+#### 17.3 Doğum Tahmin ve İzleme
+- [x] Pre-partum davranış analizi
+  - [x] Huzursuzluk (yatıp kalkma) tespiti
+  - [x] Sürüden ayrılma/izolasyon tespiti
+  - [x] Yuva yapma davranışı (koyunlarda)
+  - [x] Kuyruk kaldırma/gerinme
+- [x] Doğum başlangıcı tespiti
+- [x] Doğum süresi izleme
+- [x] Güç doğum (dystocia) uyarısı
+
+#### 17.4 Doğum Sonrası Takip
+- [x] Yavru kaydı (buzağı/kuzu)
+- [x] Anne-yavru eşleştirme
+- [x] Doğum tipi kaydı (normal/müdahaleli/sezaryen)
+- [x] Komplikasyon kaydı
+- [x] Emzirme davranışı izleme
+
+#### 17.5 Çiftleştirme Yönetimi
+- [x] Çiftleştirme kaydı
+- [x] Boğa/koç performans takibi
+- [x] Suni tohumlama kaydı
+- [x] Başarı oranı analizi
+
+#### 17.6 Üreme Uyarı Sistemi
+- [x] 🔴 Doğum başladı (Kritik - SMS + Uygulama)
+- [x] 🟠 Doğum 24 saat içinde (Yüksek - Uygulama)
+- [x] 🟡 Kızgınlık tespit edildi (Orta - Uygulama)
+- [x] 🟢 Optimal tohumlama zamanı (Normal - Uygulama)
+- [x] 🔵 Gebelik kontrol hatırlatması (Bilgi)
+- [x] ⚠️ Güç doğum riski (Kritik)
+
+#### 17.7 Üreme Performans Raporları
+- [x] Conception rate (gebe kalma oranı)
+- [x] Calving/lambing interval (doğum arası süre)
+- [x] Days open (açık gün sayısı)
+- [x] Services per conception (gebelik başına tohumlama)
+- [x] Dönemsel üreme raporu
+
+#### 17.8 Veritabanı Şeması
+- [x] estrus_detections tablosu
+- [x] pregnancies tablosu
+- [x] births tablosu
+- [x] breeding_records tablosu
+
+#### 17.9 API Endpoints
+- [x] `/api/reproduction/estrus` - Kızgınlık verileri
+- [x] `/api/reproduction/pregnancies` - Gebelik takibi
+- [x] `/api/reproduction/births` - Doğum kayıtları
+- [x] `/api/reproduction/breeding` - Çiftleştirme kayıtları
+- [x] `/api/reproduction/analytics` - Üreme analitiği
+
+#### 17.10 Frontend Sayfaları
+- [x] `/reproduction` - Üreme ana dashboard
+- [x] `/reproduction/estrus` - Kızgınlık takvimi
+- [x] `/reproduction/pregnancies` - Aktif gebelikler
+- [x] `/reproduction/births` - Doğum kayıtları
+- [x] `/reproduction/breeding` - Çiftleştirme planlaması
+
+---
+
 ## 🔧 Teknik Gereksinimler
 
 ### Donanım Gereksinimleri (Minimum - Test için)
@@ -790,8 +868,9 @@ Node.js: ">=18.0" (frontend için)
 | Faz 14: Model Eğitimi | 2 hafta | 23.5 hafta |
 | Faz 15: Test/Optimizasyon | 2 hafta | 25.5 hafta |
 | Faz 16: Deployment | 1.5 hafta | 27 hafta |
+| Faz 17: Üreme Modülü | 4 hafta | 31 hafta |
 
-**Toplam: ~6-7 ay** (part-time geliştirme için daha uzun sürebilir)
+**Toplam: ~7-8 ay** (part-time geliştirme için daha uzun sürebilir)
 
 ---
 

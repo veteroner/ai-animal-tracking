@@ -125,6 +125,72 @@ export interface WaterSource {
   created_at: string;
 }
 
+// Reproduction Types
+export interface EstrusDetection {
+  id: string;
+  animal_id: string;
+  detection_time: string;
+  behaviors: Record<string, number>;
+  confidence: number;
+  optimal_breeding_start: string;
+  optimal_breeding_end: string;
+  status: 'detected' | 'confirmed' | 'bred' | 'missed' | 'false_positive';
+  notified: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Pregnancy {
+  id: string;
+  animal_id: string;
+  breeding_date: string;
+  expected_birth_date: string;
+  actual_birth_date?: string;
+  sire_id?: string;
+  breeding_method: 'doğal' | 'suni_tohumlama' | 'embriyo_transferi';
+  pregnancy_confirmed: boolean;
+  confirmation_date?: string;
+  confirmation_method?: 'manual' | 'ultrasound' | 'blood_test' | 'observation';
+  status: 'aktif' | 'doğum_yaptı' | 'düşük' | 'iptal';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Birth {
+  id: string;
+  mother_id: string;
+  pregnancy_id?: string;
+  birth_date: string;
+  offspring_count: number;
+  offspring_ids: string[];
+  birth_type: 'normal' | 'müdahaleli' | 'sezaryen';
+  birth_weight?: number;
+  complications?: string;
+  vet_assisted: boolean;
+  vet_name?: string;
+  ai_predicted_at?: string;
+  ai_detected_at?: string;
+  prediction_accuracy_hours?: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface BreedingRecord {
+  id: string;
+  female_id: string;
+  male_id?: string;
+  breeding_date: string;
+  breeding_method: 'doğal' | 'suni_tohumlama' | 'embriyo_transferi';
+  technician_name?: string;
+  semen_batch?: string;
+  estrus_detection_id?: string;
+  success?: boolean;
+  pregnancy_id?: string;
+  notes?: string;
+  created_at: string;
+}
+
 // API Functions
 export const api = {
   // Animals
@@ -334,6 +400,264 @@ export const api = {
         .order('name');
       if (error) throw error;
       return data as WaterSource[];
+    },
+  },
+
+  // Reproduction - Estrus
+  estrus: {
+    getAll: async (): Promise<EstrusDetection[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('estrus_detections')
+        .select('*')
+        .order('detection_time', { ascending: false });
+      if (error) throw error;
+      return data as EstrusDetection[];
+    },
+    getByAnimal: async (animalId: string): Promise<EstrusDetection[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('estrus_detections')
+        .select('*')
+        .eq('animal_id', animalId)
+        .order('detection_time', { ascending: false });
+      if (error) throw error;
+      return data as EstrusDetection[];
+    },
+    getActive: async (): Promise<EstrusDetection[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('estrus_detections')
+        .select('*')
+        .in('status', ['detected', 'confirmed'])
+        .order('detection_time', { ascending: false });
+      if (error) throw error;
+      return data as EstrusDetection[];
+    },
+    create: async (record: Omit<EstrusDetection, 'id' | 'created_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+      const { data, error } = await supabase
+        .from('estrus_detections')
+        .insert(record)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as EstrusDetection;
+    },
+    confirm: async (id: string) => {
+      if (!isSupabaseConfigured()) return;
+      const { error } = await supabase
+        .from('estrus_detections')
+        .update({ status: 'confirmed' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    markBred: async (id: string) => {
+      if (!isSupabaseConfigured()) return;
+      const { error } = await supabase
+        .from('estrus_detections')
+        .update({ status: 'bred' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+  },
+
+  // Reproduction - Pregnancies
+  pregnancies: {
+    getAll: async (): Promise<Pregnancy[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('pregnancies')
+        .select('*')
+        .order('expected_birth_date', { ascending: true });
+      if (error) throw error;
+      return data as Pregnancy[];
+    },
+    getActive: async (): Promise<Pregnancy[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('pregnancies')
+        .select('*')
+        .eq('status', 'aktif')
+        .order('expected_birth_date', { ascending: true });
+      if (error) throw error;
+      return data as Pregnancy[];
+    },
+    getByAnimal: async (animalId: string): Promise<Pregnancy[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('pregnancies')
+        .select('*')
+        .eq('animal_id', animalId)
+        .order('breeding_date', { ascending: false });
+      if (error) throw error;
+      return data as Pregnancy[];
+    },
+    getDueSoon: async (days: number = 7): Promise<Pregnancy[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const today = new Date();
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + days);
+      
+      const { data, error } = await supabase
+        .from('pregnancies')
+        .select('*')
+        .eq('status', 'aktif')
+        .gte('expected_birth_date', today.toISOString().split('T')[0])
+        .lte('expected_birth_date', futureDate.toISOString().split('T')[0])
+        .order('expected_birth_date', { ascending: true });
+      if (error) throw error;
+      return data as Pregnancy[];
+    },
+    create: async (record: Omit<Pregnancy, 'id' | 'created_at' | 'updated_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+      const { data, error } = await supabase
+        .from('pregnancies')
+        .insert(record)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Pregnancy;
+    },
+    confirm: async (id: string, method: string) => {
+      if (!isSupabaseConfigured()) return;
+      const { error } = await supabase
+        .from('pregnancies')
+        .update({ 
+          pregnancy_confirmed: true, 
+          confirmation_method: method,
+          confirmation_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    complete: async (id: string, birthDate: string) => {
+      if (!isSupabaseConfigured()) return;
+      const { error } = await supabase
+        .from('pregnancies')
+        .update({ 
+          status: 'doğum_yaptı', 
+          actual_birth_date: birthDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+  },
+
+  // Reproduction - Births
+  births: {
+    getAll: async (): Promise<Birth[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('births')
+        .select('*')
+        .order('birth_date', { ascending: false });
+      if (error) throw error;
+      return data as Birth[];
+    },
+    getByMother: async (motherId: string): Promise<Birth[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('births')
+        .select('*')
+        .eq('mother_id', motherId)
+        .order('birth_date', { ascending: false });
+      if (error) throw error;
+      return data as Birth[];
+    },
+    create: async (record: Omit<Birth, 'id' | 'created_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+      const { data, error } = await supabase
+        .from('births')
+        .insert(record)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Birth;
+    },
+  },
+
+  // Reproduction - Breeding Records
+  breeding: {
+    getAll: async (): Promise<BreedingRecord[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('breeding_records')
+        .select('*')
+        .order('breeding_date', { ascending: false });
+      if (error) throw error;
+      return data as BreedingRecord[];
+    },
+    getByFemale: async (femaleId: string): Promise<BreedingRecord[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const { data, error } = await supabase
+        .from('breeding_records')
+        .select('*')
+        .eq('female_id', femaleId)
+        .order('breeding_date', { ascending: false });
+      if (error) throw error;
+      return data as BreedingRecord[];
+    },
+    create: async (record: Omit<BreedingRecord, 'id' | 'created_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+      const { data, error } = await supabase
+        .from('breeding_records')
+        .insert(record)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as BreedingRecord;
+    },
+    markSuccess: async (id: string, success: boolean, pregnancyId?: string) => {
+      if (!isSupabaseConfigured()) return;
+      const updates: Record<string, unknown> = { success };
+      if (pregnancyId) updates.pregnancy_id = pregnancyId;
+      
+      const { error } = await supabase
+        .from('breeding_records')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+  },
+
+  // Reproduction Stats
+  reproductionStats: {
+    getSummary: async () => {
+      if (!isSupabaseConfigured()) {
+        return {
+          activeEstrus: 0,
+          activePregnancies: 0,
+          dueSoon: 0,
+          totalBirths: 0,
+          pendingBreedings: 0,
+        };
+      }
+      
+      const today = new Date();
+      const weekLater = new Date(today);
+      weekLater.setDate(today.getDate() + 7);
+      
+      const [estrus, pregnancies, dueSoon, births, breeding] = await Promise.all([
+        supabase.from('estrus_detections').select('id', { count: 'exact' }).in('status', ['detected', 'confirmed']),
+        supabase.from('pregnancies').select('id', { count: 'exact' }).eq('status', 'aktif'),
+        supabase.from('pregnancies').select('id', { count: 'exact' })
+          .eq('status', 'aktif')
+          .gte('expected_birth_date', today.toISOString().split('T')[0])
+          .lte('expected_birth_date', weekLater.toISOString().split('T')[0]),
+        supabase.from('births').select('id', { count: 'exact' }),
+        supabase.from('breeding_records').select('id', { count: 'exact' }).is('success', null),
+      ]);
+
+      return {
+        activeEstrus: estrus.count || 0,
+        activePregnancies: pregnancies.count || 0,
+        dueSoon: dueSoon.count || 0,
+        totalBirths: births.count || 0,
+        pendingBreedings: breeding.count || 0,
+      };
     },
   },
 

@@ -158,6 +158,83 @@ CREATE TABLE activity_logs (
 );
 
 -- =====================================================
+-- ESTRUS DETECTIONS (Kızgınlık Tespitleri)
+-- =====================================================
+CREATE TABLE estrus_detections (
+  id TEXT PRIMARY KEY,
+  animal_id TEXT NOT NULL,
+  detection_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  behaviors JSONB DEFAULT '{}',
+  confidence DECIMAL(3, 2) DEFAULT 0.0,
+  optimal_breeding_start TIMESTAMP WITH TIME ZONE,
+  optimal_breeding_end TIMESTAMP WITH TIME ZONE,
+  status VARCHAR(20) DEFAULT 'detected' CHECK (status IN ('detected', 'confirmed', 'bred', 'missed', 'false_positive')),
+  notified BOOLEAN DEFAULT FALSE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
+-- PREGNANCIES (Gebelik Kayıtları)
+-- =====================================================
+CREATE TABLE pregnancies (
+  id TEXT PRIMARY KEY,
+  animal_id TEXT NOT NULL,
+  breeding_date DATE NOT NULL,
+  expected_birth_date DATE NOT NULL,
+  actual_birth_date DATE,
+  sire_id TEXT,
+  breeding_method VARCHAR(20) DEFAULT 'doğal' CHECK (breeding_method IN ('doğal', 'suni_tohumlama', 'embriyo_transferi')),
+  pregnancy_confirmed BOOLEAN DEFAULT FALSE,
+  confirmation_date DATE,
+  confirmation_method VARCHAR(30) CHECK (confirmation_method IN ('manual', 'ultrasound', 'blood_test', 'observation')),
+  status VARCHAR(20) DEFAULT 'aktif' CHECK (status IN ('aktif', 'doğum_yaptı', 'düşük', 'iptal')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
+-- BIRTHS (Doğum Kayıtları)
+-- =====================================================
+CREATE TABLE births (
+  id TEXT PRIMARY KEY,
+  mother_id TEXT NOT NULL,
+  pregnancy_id TEXT REFERENCES pregnancies(id) ON DELETE SET NULL,
+  birth_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  offspring_count INTEGER DEFAULT 1,
+  offspring_ids TEXT[] DEFAULT '{}',
+  birth_type VARCHAR(20) DEFAULT 'normal' CHECK (birth_type IN ('normal', 'müdahaleli', 'sezaryen')),
+  birth_weight DECIMAL(10, 2),
+  complications TEXT,
+  vet_assisted BOOLEAN DEFAULT FALSE,
+  vet_name VARCHAR(100),
+  ai_predicted_at TIMESTAMP WITH TIME ZONE,
+  ai_detected_at TIMESTAMP WITH TIME ZONE,
+  prediction_accuracy_hours DECIMAL(5, 2),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
+-- BREEDING RECORDS (Çiftleştirme Kayıtları)
+-- =====================================================
+CREATE TABLE breeding_records (
+  id TEXT PRIMARY KEY,
+  female_id TEXT NOT NULL,
+  male_id TEXT,
+  breeding_date DATE NOT NULL,
+  breeding_method VARCHAR(20) DEFAULT 'doğal' CHECK (breeding_method IN ('doğal', 'suni_tohumlama', 'embriyo_transferi')),
+  technician_name VARCHAR(100),
+  semen_batch VARCHAR(50),
+  estrus_detection_id TEXT REFERENCES estrus_detections(id) ON DELETE SET NULL,
+  success BOOLEAN,
+  pregnancy_id TEXT REFERENCES pregnancies(id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
 -- INDEXES
 -- =====================================================
 CREATE INDEX idx_animals_status ON animals(status);
@@ -169,6 +246,18 @@ CREATE INDEX idx_alerts_severity ON alerts(severity);
 CREATE INDEX idx_egg_production_date ON egg_production(date);
 CREATE INDEX idx_activity_logs_animal ON activity_logs(animal_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
+
+-- Reproduction indexes
+CREATE INDEX idx_estrus_animal ON estrus_detections(animal_id);
+CREATE INDEX idx_estrus_status ON estrus_detections(status);
+CREATE INDEX idx_estrus_detection_time ON estrus_detections(detection_time);
+CREATE INDEX idx_pregnancies_animal ON pregnancies(animal_id);
+CREATE INDEX idx_pregnancies_status ON pregnancies(status);
+CREATE INDEX idx_pregnancies_expected_birth ON pregnancies(expected_birth_date);
+CREATE INDEX idx_births_mother ON births(mother_id);
+CREATE INDEX idx_births_date ON births(birth_date);
+CREATE INDEX idx_breeding_female ON breeding_records(female_id);
+CREATE INDEX idx_breeding_date ON breeding_records(breeding_date);
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS)
@@ -183,6 +272,12 @@ ALTER TABLE water_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weight_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
+-- Reproduction tables RLS
+ALTER TABLE estrus_detections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pregnancies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE births ENABLE ROW LEVEL SECURITY;
+ALTER TABLE breeding_records ENABLE ROW LEVEL SECURITY;
+
 -- Public read access (adjust as needed)
 CREATE POLICY "Allow public read" ON animals FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON zones FOR SELECT USING (true);
@@ -194,6 +289,12 @@ CREATE POLICY "Allow public read" ON water_sources FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON weight_history FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON activity_logs FOR SELECT USING (true);
 
+-- Reproduction tables policies
+CREATE POLICY "Allow public read" ON estrus_detections FOR SELECT USING (true);
+CREATE POLICY "Allow public read" ON pregnancies FOR SELECT USING (true);
+CREATE POLICY "Allow public read" ON births FOR SELECT USING (true);
+CREATE POLICY "Allow public read" ON breeding_records FOR SELECT USING (true);
+
 -- Allow all operations for authenticated users (adjust as needed)
 CREATE POLICY "Allow all for authenticated" ON animals FOR ALL USING (true);
 CREATE POLICY "Allow all for authenticated" ON zones FOR ALL USING (true);
@@ -204,6 +305,12 @@ CREATE POLICY "Allow all for authenticated" ON egg_production FOR ALL USING (tru
 CREATE POLICY "Allow all for authenticated" ON water_sources FOR ALL USING (true);
 CREATE POLICY "Allow all for authenticated" ON weight_history FOR ALL USING (true);
 CREATE POLICY "Allow all for authenticated" ON activity_logs FOR ALL USING (true);
+
+-- Reproduction tables all access
+CREATE POLICY "Allow all for authenticated" ON estrus_detections FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON pregnancies FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON births FOR ALL USING (true);
+CREATE POLICY "Allow all for authenticated" ON breeding_records FOR ALL USING (true);
 
 -- =====================================================
 -- SAMPLE DATA (Örnek Veriler)
