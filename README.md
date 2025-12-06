@@ -2,8 +2,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![YOLOv8](https://img.shields.io/badge/YOLO-v8-green.svg)](https://ultralytics.com)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.123+-orange.svg)](https://fastapi.tiangolo.com)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.50+-red.svg)](https://streamlit.io)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-orange.svg)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Çiftlik hayvanlarının gerçek zamanlı tespiti, takibi, davranış analizi ve sağlık izleme sistemi.
@@ -17,9 +17,9 @@
 - 🏥 **Sağlık İzleme**: Vücut kondisyon skoru, topallama tespiti
 - 📊 **Analitik**: Detaylı raporlar ve trendler
 - 🔔 **Akıllı Uyarılar**: Kritik durumlar için otomatik bildirim
-- 🌐 **Web Dashboard**: Streamlit ile modern arayüz
-- 📱 **Mobil Destek**: Telefon kamerası entegrasyonu
-- 🔌 **REST API**: FastAPI ile 60+ endpoint
+- 🌐 **Web Dashboard**: Next.js ile modern arayüz
+- 📱 **Mobil Destek**: React Native mobil app + telefon kamerası
+- 🔌 **REST API**: FastAPI ile 94 endpoint
 
 ## 📦 Modüller
 
@@ -35,16 +35,18 @@
 | `src/database` | ✅ | SQLAlchemy ORM (8 tablo) |
 | `src/alerts` | ✅ | Uyarı sistemi |
 | `src/pipeline` | ✅ | Entegre işlem hattı |
-| `src/api` | ✅ | FastAPI REST API (67 endpoint) |
-| `src/ui` | ✅ | Streamlit dashboard |
-| `src/export` | ✅ | CSV/JSON/Excel export, webhook |
-| `src/notifications` | ✅ | Bildirim sistemi |
+| `src/api` | ✅ | FastAPI REST API (94 endpoint) |
+| `frontend/` | ✅ | Next.js dashboard |
+| `mobile/` | ✅ | React Native mobil app |
+| `huggingface/` | ✅ | HuggingFace Spaces deployment |
+| `supabase/` | ✅ | Cloud database schema |
 
 ## 🚀 Hızlı Başlangıç
 
 ### Gereksinimler
 
 - Python 3.9+
+- Node.js 18+ (frontend için)
 - pip
 - Webcam veya IP kamera
 - (Opsiyonel) Apple Silicon MPS veya NVIDIA GPU
@@ -53,20 +55,49 @@
 
 ```bash
 # 1. Repository'yi klonlayın
-git clone <repo-url>
-cd ai_goruntu_isleme
+git clone https://github.com/veteroner/ai-animal-tracking.git
+cd ai-animal-tracking
 
-# 2. Virtual environment oluşturun
+# 2. Otomatik kurulum (önerilen)
+./scripts/setup.sh
+
+# veya manuel kurulum:
+
+# Virtual environment oluşturun
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
-# veya
-.\venv\Scripts\activate  # Windows
 
-# 3. Bağımlılıkları yükleyin
+# Bağımlılıkları yükleyin
 pip install -r requirements.txt
+
+# Frontend bağımlılıkları
+cd frontend && npm install && cd ..
 ```
 
-### İlk Çalıştırma
+### Başlatma
+
+```bash
+# Tüm servisleri başlat (Backend + Frontend)
+./scripts/start_all.sh
+
+# veya ayrı ayrı:
+
+# Backend API (Terminal 1)
+python src/main.py
+
+# Frontend (Terminal 2)
+cd frontend && npm run dev
+```
+
+### Erişim Adresleri
+
+| Servis | URL |
+|--------|-----|
+| Backend API | http://localhost:8000 |
+| API Docs (Swagger) | http://localhost:8000/docs |
+| Frontend | http://localhost:3000 |
+
+### Webcam ile Demo
 
 ```bash
 # Webcam ile hızlı demo
@@ -85,19 +116,23 @@ python src/main.py --camera "http://192.168.1.100:8080/video"
 ## 📁 Proje Yapısı
 
 ```
-ai_goruntu_isleme/
+ai-animal-tracking/
 ├── config/              # Konfigürasyon dosyaları
-├── src/                 # Kaynak kodları
+├── src/                 # Python kaynak kodları
 │   ├── core/           # Çekirdek modüller
 │   ├── camera/         # Kamera yönetimi
 │   ├── detection/      # Nesne tespiti (YOLO)
-│   ├── tracking/       # Nesne takibi (DeepSORT)
+│   ├── tracking/       # Nesne takibi (ByteTrack)
 │   ├── identification/ # Hayvan kimlik sistemi
 │   ├── behavior/       # Davranış analizi
 │   ├── health/         # Sağlık izleme
-│   ├── api/            # REST API
-│   └── database/       # Veritabanı
-├── web/                # Web arayüzü
+│   ├── api/            # REST API (FastAPI)
+│   └── database/       # Veritabanı (SQLAlchemy)
+├── frontend/           # Next.js web dashboard
+├── mobile/             # React Native mobil app
+├── huggingface/        # HuggingFace Spaces deployment
+├── supabase/           # Cloud database schema
+├── scripts/            # Kurulum ve başlatma scriptleri
 ├── models/             # AI modelleri
 ├── data/               # Veri dizini
 ├── tests/              # Testler
