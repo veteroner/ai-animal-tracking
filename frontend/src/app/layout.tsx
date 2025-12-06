@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import ConnectionStatus from '@/components/ui/ConnectionStatus';
 
 export const metadata: Metadata = {
   title: 'AI Hayvan Takip Sistemi',
@@ -31,6 +32,9 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+        
+        {/* Connection Status Indicator */}
+        <ConnectionStatus />
       </body>
     </html>
   );
