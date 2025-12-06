@@ -5,6 +5,19 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
+-- DROP EXISTING TABLES (Varolan tabloları sil)
+-- =====================================================
+DROP TABLE IF EXISTS activity_logs CASCADE;
+DROP TABLE IF EXISTS weight_history CASCADE;
+DROP TABLE IF EXISTS water_sources CASCADE;
+DROP TABLE IF EXISTS egg_production CASCADE;
+DROP TABLE IF EXISTS poultry CASCADE;
+DROP TABLE IF EXISTS alerts CASCADE;
+DROP TABLE IF EXISTS health_records CASCADE;
+DROP TABLE IF EXISTS animals CASCADE;
+DROP TABLE IF EXISTS zones CASCADE;
+
+-- =====================================================
 -- ZONES (Bölgeler)
 -- =====================================================
 CREATE TABLE zones (
