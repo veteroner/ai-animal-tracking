@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Bird,
   Search,
@@ -13,7 +13,9 @@ import {
   Edit,
   Trash2,
   Eye,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, Poultry as SupabasePoultry } from '@/lib/supabase';
 
 interface Poultry {
   id: number;
@@ -29,15 +31,6 @@ interface Poultry {
   coop_name?: string;
 }
 
-const mockPoultry: Poultry[] = [
-  { id: 1, tag_id: 'K-001', name: 'Sarı', poultry_type: 'chicken', breed: 'Rhode Island Red', gender: 'female', health_status: 'healthy', weight: 2.5, coop_name: 'Kümes 1', hatch_date: '2024-03-15' },
-  { id: 2, tag_id: 'K-002', poultry_type: 'chicken', breed: 'Leghorn', gender: 'female', health_status: 'healthy', weight: 2.2, coop_name: 'Kümes 1', hatch_date: '2024-03-10' },
-  { id: 3, tag_id: 'K-003', name: 'Horoz', poultry_type: 'rooster', breed: 'Rhode Island Red', gender: 'male', health_status: 'healthy', weight: 3.8, coop_name: 'Kümes 1', hatch_date: '2024-02-20' },
-  { id: 4, tag_id: 'K-004', poultry_type: 'turkey', breed: 'Bronze', gender: 'male', health_status: 'warning', weight: 8.5, coop_name: 'Kümes 2', hatch_date: '2024-01-10' },
-  { id: 5, tag_id: 'K-005', poultry_type: 'duck', breed: 'Pekin', gender: 'female', health_status: 'healthy', weight: 3.2, coop_name: 'Kümes 3', hatch_date: '2024-04-01' },
-  { id: 6, tag_id: 'K-006', poultry_type: 'goose', breed: 'Toulouse', gender: 'female', health_status: 'sick', weight: 5.5, coop_name: 'Kümes 3', hatch_date: '2024-02-15' },
-];
-
 const healthStatusColors = {
   healthy: { bg: 'bg-success-100', text: 'text-success-600', label: 'Sağlıklı' },
   warning: { bg: 'bg-warning-100', text: 'text-warning-600', label: 'Dikkat' },
@@ -51,14 +44,91 @@ const poultryTypeLabels: Record<string, string> = {
   duck: 'Ördek',
   goose: 'Kaz',
   quail: 'Bıldırcın',
+  tavuk: 'Tavuk',
+  hindi: 'Hindi',
+  ördek: 'Ördek',
+  kaz: 'Kaz',
+};
+
+// Map Supabase bird type to component type
+const mapBirdType = (type: string): string => {
+  const map: Record<string, string> = {
+    'tavuk': 'chicken',
+    'hindi': 'turkey',
+    'ördek': 'duck',
+    'kaz': 'goose',
+  };
+  return map[type] || type;
+};
+
+// Map Supabase status to component status
+const mapPoultryStatus = (status: string): string => {
+  const map: Record<string, string> = {
+    'aktif': 'healthy',
+    'karantina': 'warning',
+    'tedavide': 'sick',
+  };
+  return map[status] || 'healthy';
 };
 
 export default function PoultryPage() {
-  const [poultry, setPoultry] = useState<Poultry[]>(mockPoultry);
+  const [poultry, setPoultry] = useState<Poultry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedPoultry, setSelectedPoultry] = useState<Poultry | null>(null);
+
+  useEffect(() => {
+    loadPoultry();
+  }, []);
+
+  const loadPoultry = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setPoultry([
+          { id: 1, tag_id: 'K-001', name: 'Sarı', poultry_type: 'chicken', breed: 'Rhode Island Red', gender: 'female', health_status: 'healthy', weight: 2.5, coop_name: 'Kümes 1', hatch_date: '2024-03-15' },
+          { id: 2, tag_id: 'K-002', poultry_type: 'chicken', breed: 'Leghorn', gender: 'female', health_status: 'healthy', weight: 2.2, coop_name: 'Kümes 1', hatch_date: '2024-03-10' },
+          { id: 3, tag_id: 'K-003', name: 'Horoz', poultry_type: 'rooster', breed: 'Rhode Island Red', gender: 'male', health_status: 'healthy', weight: 3.8, coop_name: 'Kümes 1', hatch_date: '2024-02-20' },
+          { id: 4, tag_id: 'K-004', poultry_type: 'turkey', breed: 'Bronze', gender: 'male', health_status: 'warning', weight: 8.5, coop_name: 'Kümes 2', hatch_date: '2024-01-10' },
+          { id: 5, tag_id: 'K-005', poultry_type: 'duck', breed: 'Pekin', gender: 'female', health_status: 'healthy', weight: 3.2, coop_name: 'Kümes 3', hatch_date: '2024-04-01' },
+          { id: 6, tag_id: 'K-006', poultry_type: 'goose', breed: 'Toulouse', gender: 'female', health_status: 'sick', weight: 5.5, coop_name: 'Kümes 3', hatch_date: '2024-02-15' },
+        ]);
+        return;
+      }
+
+      const supabasePoultry = await api.poultry.getAll();
+
+      // Map Supabase poultry to component format
+      const mappedPoultry: Poultry[] = supabasePoultry.map((p: SupabasePoultry, index: number) => ({
+        id: parseInt(p.id) || index + 1,
+        tag_id: `K-${String(index + 1).padStart(3, '0')}`,
+        poultry_type: mapBirdType(p.bird_type),
+        breed: p.breed,
+        gender: 'female',
+        health_status: mapPoultryStatus(p.status),
+        weight: p.avg_weight,
+        coop_name: p.coop_name,
+      }));
+
+      setPoultry(mappedPoultry.length > 0 ? mappedPoultry : [
+        { id: 1, tag_id: 'K-001', poultry_type: 'chicken', gender: 'female', health_status: 'healthy', coop_name: 'Kümes 1' },
+      ]);
+    } catch (err) {
+      console.error('Error loading poultry:', err);
+      setError('Kanatlılar yüklenemedi');
+      setPoultry([
+        { id: 1, tag_id: 'K-001', poultry_type: 'chicken', gender: 'female', health_status: 'healthy', coop_name: 'Demo Kümes' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPoultry = poultry.filter(p => {
     const matchesSearch = 

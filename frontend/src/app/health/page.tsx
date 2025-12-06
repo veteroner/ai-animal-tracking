@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Activity,
   Plus,
@@ -11,7 +11,9 @@ import {
   FileText,
   Search,
   Filter,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured } from '@/lib/supabase';
 
 interface HealthRecord {
   id: number;
@@ -29,14 +31,6 @@ interface HealthRecord {
   vet_name?: string;
 }
 
-const mockRecords: HealthRecord[] = [
-  { id: 1, animal_id: 1, animal_tag: 'TR-001', animal_name: 'Sarıkız', check_date: '2024-12-02', health_status: 'healthy', temperature: 38.5, weight: 452, notes: 'Rutin kontrol, sağlık durumu iyi', vet_name: 'Dr. Ahmet Yılmaz' },
-  { id: 2, animal_id: 2, animal_tag: 'TR-002', animal_name: 'Karabaş', check_date: '2024-12-01', health_status: 'warning', temperature: 39.8, weight: 518, symptoms: 'Hafif öksürük', diagnosis: 'Üst solunum yolu enfeksiyonu şüphesi', treatment: 'Antibiyotik tedavisi başlandı', vet_name: 'Dr. Ahmet Yılmaz' },
-  { id: 3, animal_id: 5, animal_tag: 'TR-005', check_date: '2024-11-30', health_status: 'sick', temperature: 40.2, weight: 68, symptoms: 'İştahsızlık, halsizlik', diagnosis: 'Parazit enfeksiyonu', treatment: 'Antiparaziter ilaç verildi', vet_name: 'Dr. Fatma Demir' },
-  { id: 4, animal_id: 3, animal_tag: 'TR-003', animal_name: 'Benekli', check_date: '2024-11-28', health_status: 'healthy', temperature: 38.3, weight: 382, notes: 'Aşı yapıldı', vet_name: 'Dr. Fatma Demir' },
-  { id: 5, animal_id: 4, animal_tag: 'TR-004', check_date: '2024-11-25', health_status: 'healthy', temperature: 39.0, weight: 66, notes: 'Genel sağlık kontrolü', vet_name: 'Dr. Ahmet Yılmaz' },
-];
-
 const statusConfig = {
   healthy: { bg: 'bg-success-100', text: 'text-success-600', label: 'Sağlıklı' },
   warning: { bg: 'bg-warning-100', text: 'text-warning-600', label: 'Dikkat' },
@@ -44,10 +38,69 @@ const statusConfig = {
 };
 
 export default function HealthPage() {
-  const [records, setRecords] = useState<HealthRecord[]>(mockRecords);
+  const [records, setRecords] = useState<HealthRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    loadHealthRecords();
+  }, []);
+
+  const loadHealthRecords = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setRecords([
+          { id: 1, animal_id: 1, animal_tag: 'TR-001', animal_name: 'Sarıkız', check_date: '2024-12-02', health_status: 'healthy', temperature: 38.5, weight: 452, notes: 'Rutin kontrol, sağlık durumu iyi', vet_name: 'Dr. Ahmet Yılmaz' },
+          { id: 2, animal_id: 2, animal_tag: 'TR-002', animal_name: 'Karabaş', check_date: '2024-12-01', health_status: 'warning', temperature: 39.8, weight: 518, symptoms: 'Hafif öksürük', diagnosis: 'Üst solunum yolu enfeksiyonu şüphesi', treatment: 'Antibiyotik tedavisi başlandı', vet_name: 'Dr. Ahmet Yılmaz' },
+          { id: 3, animal_id: 5, animal_tag: 'TR-005', check_date: '2024-11-30', health_status: 'sick', temperature: 40.2, weight: 68, symptoms: 'İştahsızlık, halsizlik', diagnosis: 'Parazit enfeksiyonu', treatment: 'Antiparaziter ilaç verildi', vet_name: 'Dr. Fatma Demir' },
+          { id: 4, animal_id: 3, animal_tag: 'TR-003', animal_name: 'Benekli', check_date: '2024-11-28', health_status: 'healthy', temperature: 38.3, weight: 382, notes: 'Aşı yapıldı', vet_name: 'Dr. Fatma Demir' },
+          { id: 5, animal_id: 4, animal_tag: 'TR-004', check_date: '2024-11-25', health_status: 'healthy', temperature: 39.0, weight: 66, notes: 'Genel sağlık kontrolü', vet_name: 'Dr. Ahmet Yılmaz' },
+        ]);
+        return;
+      }
+
+      const healthRecords = await api.health.getAll();
+
+      // Map records to component format
+      const mappedRecords: HealthRecord[] = healthRecords.map((r: any, index: number) => {
+        // Map type to status
+        let healthStatus = 'healthy';
+        if (r.type === 'tedavi') healthStatus = 'sick';
+        else if (r.type === 'kontrol') healthStatus = 'warning';
+
+        return {
+          id: parseInt(r.id) || index + 1,
+          animal_id: r.animal_id ? parseInt(r.animal_id) : index + 1,
+          animal_tag: r.animals?.tag || `TR-${String(index + 1).padStart(3, '0')}`,
+          animal_name: r.animals?.name,
+          check_date: r.date,
+          health_status: healthStatus,
+          notes: r.description,
+          diagnosis: r.result,
+          vet_name: r.vet_name,
+        };
+      });
+
+      setRecords(mappedRecords.length > 0 ? mappedRecords : [
+        { id: 1, animal_id: 1, animal_tag: 'TR-001', check_date: new Date().toISOString().split('T')[0], health_status: 'healthy', notes: 'Kayıt bulunamadı' },
+      ]);
+    } catch (err) {
+      console.error('Error loading health records:', err);
+      setError('Sağlık kayıtları yüklenemedi');
+      setRecords([
+        { id: 1, animal_id: 1, animal_tag: 'TR-001', check_date: new Date().toISOString().split('T')[0], health_status: 'healthy', notes: 'Demo veri' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredRecords = records.filter(record => {
     const matchesSearch = 

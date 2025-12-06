@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   MapPin,
@@ -13,7 +13,9 @@ import {
   Droplets,
   Wheat,
   Shield,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, Zone as SupabaseZone } from '@/lib/supabase';
 
 // Harita bileşenini dinamik olarak yükle (SSR devre dışı)
 const ZoneMap = dynamic(() => import('@/components/map/ZoneMap'), {
@@ -40,14 +42,16 @@ interface Zone {
   radius?: number;
 }
 
-const mockZones: Zone[] = [
-  { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 45, capacity: 60, status: 'normal', description: 'Günlük otlatma alanı', coordinates: [39.9350, 32.8610], radius: 80 },
-  { id: 2, name: 'Ahır 1', zone_type: 'shelter', animal_count: 32, capacity: 40, status: 'normal', description: 'Ana barınak', coordinates: [39.9320, 32.8580], radius: 40 },
-  { id: 3, name: 'Ahır 2', zone_type: 'shelter', animal_count: 28, capacity: 30, status: 'warning', description: 'Yavru barınağı', coordinates: [39.9330, 32.8560], radius: 35 },
-  { id: 4, name: 'Su Kaynağı', zone_type: 'water', animal_count: 12, capacity: 20, status: 'normal', description: 'Ana su deposu', coordinates: [39.9340, 32.8620], radius: 25 },
-  { id: 5, name: 'Yem Deposu', zone_type: 'feeding', animal_count: 8, capacity: 15, status: 'normal', description: 'Yem dağıtım noktası', coordinates: [39.9310, 32.8600], radius: 30 },
-  { id: 6, name: 'Tehlikeli Bölge', zone_type: 'restricted', animal_count: 3, capacity: 0, status: 'danger', description: 'Yasak bölge - inşaat alanı', coordinates: [39.9360, 32.8550], radius: 60 },
-];
+// Zone type mappings from Supabase
+const mapZoneType = (type: string): string => {
+  const map: Record<string, string> = {
+    'otlak': 'grazing',
+    'ahır': 'shelter',
+    'karantina': 'restricted',
+    'sulak': 'water',
+  };
+  return map[type] || 'grazing';
+};
 
 const zoneTypeConfig = {
   grazing: { icon: Wheat, label: 'Otlak', color: 'text-success-600', bg: 'bg-success-100' },
@@ -64,7 +68,72 @@ const statusConfig = {
 };
 
 export default function ZonesPage() {
-  const [zones, setZones] = useState<Zone[]>(mockZones);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadZones = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!isSupabaseConfigured()) {
+          // Demo data when Supabase is not configured
+          setZones([
+            { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 45, capacity: 60, status: 'normal', description: 'Günlük otlatma alanı', coordinates: [39.9350, 32.8610], radius: 80 },
+            { id: 2, name: 'Ahır 1', zone_type: 'shelter', animal_count: 32, capacity: 40, status: 'normal', description: 'Ana barınak', coordinates: [39.9320, 32.8580], radius: 40 },
+            { id: 3, name: 'Ahır 2', zone_type: 'shelter', animal_count: 28, capacity: 30, status: 'warning', description: 'Yavru barınağı', coordinates: [39.9330, 32.8560], radius: 35 },
+            { id: 4, name: 'Su Kaynağı', zone_type: 'water', animal_count: 12, capacity: 20, status: 'normal', description: 'Ana su deposu', coordinates: [39.9340, 32.8620], radius: 25 },
+            { id: 5, name: 'Yem Deposu', zone_type: 'feeding', animal_count: 8, capacity: 15, status: 'normal', description: 'Yem dağıtım noktası', coordinates: [39.9310, 32.8600], radius: 30 },
+            { id: 6, name: 'Tehlikeli Bölge', zone_type: 'restricted', animal_count: 3, capacity: 0, status: 'danger', description: 'Yasak bölge - inşaat alanı', coordinates: [39.9360, 32.8550], radius: 60 },
+          ]);
+          return;
+        }
+
+        const supabaseZones = await api.zones.getAll();
+        
+        // Map Supabase zones to component format
+        const mappedZones: Zone[] = supabaseZones.map((z: SupabaseZone, index: number) => {
+          const occupancy = z.capacity > 0 ? z.current_count / z.capacity : 0;
+          let status: 'normal' | 'warning' | 'danger' = 'normal';
+          if (occupancy > 0.9) status = 'danger';
+          else if (occupancy > 0.7) status = 'warning';
+
+          // Get center of polygon coordinates
+          const coords = z.coordinates || [];
+          const lat = coords.length > 0 ? coords.reduce((sum, c) => sum + c.lat, 0) / coords.length : 39.9334 + (index * 0.003);
+          const lng = coords.length > 0 ? coords.reduce((sum, c) => sum + c.lng, 0) / coords.length : 32.8597 + (index * 0.002);
+
+          return {
+            id: parseInt(z.id) || index + 1,
+            name: z.name,
+            zone_type: mapZoneType(z.type),
+            animal_count: z.current_count || 0,
+            capacity: z.capacity || 50,
+            status,
+            coordinates: [lat, lng] as [number, number],
+            radius: 40,
+          };
+        });
+
+        setZones(mappedZones.length > 0 ? mappedZones : [
+          { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 0, capacity: 60, status: 'normal', coordinates: [39.9350, 32.8610], radius: 80 },
+        ]);
+      } catch (err) {
+        console.error('Error loading zones:', err);
+        setError('Bölgeler yüklenemedi');
+        // Fallback to demo data
+        setZones([
+          { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 45, capacity: 60, status: 'normal', coordinates: [39.9350, 32.8610], radius: 80 },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadZones();
+  }, []);
 
   const totalAnimals = zones.reduce((sum, z) => sum + z.animal_count, 0);
   const totalCapacity = zones.filter(z => z.zone_type !== 'restricted').reduce((sum, z) => sum + z.capacity, 0);

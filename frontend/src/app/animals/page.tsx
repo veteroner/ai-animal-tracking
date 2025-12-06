@@ -16,6 +16,7 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, Animal as SupabaseAnimal } from '@/lib/supabase';
 
 interface Animal {
   id: number;
@@ -37,9 +38,21 @@ const healthStatusColors = {
   critical: { bg: 'bg-danger-100', text: 'text-danger-600', label: 'Kritik' },
 };
 
+// Map Supabase status to component status
+const mapHealthStatus = (status: string): string => {
+  const map: Record<string, string> = {
+    'sağlıklı': 'healthy',
+    'hasta': 'sick',
+    'tedavide': 'warning',
+    'karantina': 'critical',
+  };
+  return map[status] || 'healthy';
+};
+
 export default function AnimalsPage() {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSpecies, setFilterSpecies] = useState<string>('all');
@@ -52,14 +65,47 @@ export default function AnimalsPage() {
 
   const fetchAnimals = async () => {
     try {
-      // Demo data
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setAnimals([
+          { id: 1, tag_id: 'TR-001', name: 'Sarıkız', species: 'cattle', breed: 'Simental', gender: 'female', health_status: 'healthy', weight: 450, created_at: '2024-01-15' },
+          { id: 2, tag_id: 'TR-002', name: 'Karabaş', species: 'cattle', breed: 'Holstein', gender: 'male', health_status: 'warning', weight: 520, created_at: '2024-01-10' },
+          { id: 3, tag_id: 'TR-003', name: 'Benekli', species: 'cattle', breed: 'Jersey', gender: 'female', health_status: 'healthy', weight: 380, created_at: '2024-02-01' },
+          { id: 4, tag_id: 'TR-004', species: 'sheep', breed: 'Merinos', gender: 'female', health_status: 'healthy', weight: 65, created_at: '2024-02-15' },
+          { id: 5, tag_id: 'TR-005', species: 'sheep', breed: 'Kıvırcık', gender: 'male', health_status: 'sick', weight: 70, created_at: '2024-01-20' },
+          { id: 6, tag_id: 'TR-006', name: 'Pamuk', species: 'goat', breed: 'Saanen', gender: 'female', health_status: 'healthy', weight: 45, created_at: '2024-03-01' },
+        ]);
+        return;
+      }
+
+      const supabaseAnimals = await api.animals.getAll();
+      
+      // Map Supabase animals to component format
+      const mappedAnimals: Animal[] = supabaseAnimals.map((a: SupabaseAnimal, index: number) => ({
+        id: parseInt(a.id) || index + 1,
+        tag_id: a.tag || `TR-${String(index + 1).padStart(3, '0')}`,
+        name: a.name,
+        species: a.type || 'cattle',
+        breed: a.breed || 'Bilinmiyor',
+        gender: a.gender === 'erkek' ? 'male' : 'female',
+        health_status: mapHealthStatus(a.status),
+        weight: a.weight || 0,
+        birth_date: a.birth_date,
+        created_at: a.created_at,
+      }));
+
+      setAnimals(mappedAnimals.length > 0 ? mappedAnimals : [
+        { id: 1, tag_id: 'TR-001', name: 'Örnek Hayvan', species: 'cattle', breed: 'Simental', gender: 'female', health_status: 'healthy', weight: 450, created_at: new Date().toISOString() },
+      ]);
+    } catch (err) {
+      console.error('Error fetching animals:', err);
+      setError('Hayvanlar yüklenemedi');
+      // Fallback to demo data
       setAnimals([
         { id: 1, tag_id: 'TR-001', name: 'Sarıkız', species: 'cattle', breed: 'Simental', gender: 'female', health_status: 'healthy', weight: 450, created_at: '2024-01-15' },
-        { id: 2, tag_id: 'TR-002', name: 'Karabaş', species: 'cattle', breed: 'Holstein', gender: 'male', health_status: 'warning', weight: 520, created_at: '2024-01-10' },
-        { id: 3, tag_id: 'TR-003', name: 'Benekli', species: 'cattle', breed: 'Jersey', gender: 'female', health_status: 'healthy', weight: 380, created_at: '2024-02-01' },
-        { id: 4, tag_id: 'TR-004', species: 'sheep', breed: 'Merinos', gender: 'female', health_status: 'healthy', weight: 65, created_at: '2024-02-15' },
-        { id: 5, tag_id: 'TR-005', species: 'sheep', breed: 'Kıvırcık', gender: 'male', health_status: 'sick', weight: 70, created_at: '2024-01-20' },
-        { id: 6, tag_id: 'TR-006', name: 'Pamuk', species: 'goat', breed: 'Saanen', gender: 'female', health_status: 'healthy', weight: 45, created_at: '2024-03-01' },
       ]);
     } finally {
       setLoading(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Droplets,
   Plus,
@@ -8,7 +8,9 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, WaterSource as SupabaseWaterSource } from '@/lib/supabase';
 
 interface WaterSource {
   id: number;
@@ -22,14 +24,6 @@ interface WaterSource {
   status: 'active' | 'maintenance' | 'inactive';
 }
 
-const mockWaterSources: WaterSource[] = [
-  { id: 1, name: 'Ana Su Deposu', location: 'Merkez', capacity: 10000, current_level: 7500, temperature: 15, quality: 'good', last_check: '2024-12-02', status: 'active' },
-  { id: 2, name: 'Otlak Sulağı 1', location: 'Kuzey Otlak', capacity: 2000, current_level: 1200, temperature: 18, quality: 'good', last_check: '2024-12-02', status: 'active' },
-  { id: 3, name: 'Otlak Sulağı 2', location: 'Güney Otlak', capacity: 2000, current_level: 400, temperature: 20, quality: 'moderate', last_check: '2024-12-01', status: 'active' },
-  { id: 4, name: 'Ahır Suluğu', location: 'Ahır 1', capacity: 500, current_level: 450, quality: 'good', last_check: '2024-12-02', status: 'active' },
-  { id: 5, name: 'Yedek Depo', location: 'Depo Alanı', capacity: 5000, current_level: 5000, quality: 'good', last_check: '2024-11-30', status: 'maintenance' },
-];
-
 const qualityConfig = {
   good: { label: 'İyi', color: 'text-success-600', bg: 'bg-success-100' },
   moderate: { label: 'Orta', color: 'text-warning-600', bg: 'bg-warning-100' },
@@ -42,8 +36,73 @@ const statusConfig = {
   inactive: { label: 'Pasif', color: 'text-gray-600', bg: 'bg-gray-100' },
 };
 
+// Map Supabase status to component status/quality
+const mapWaterStatus = (status: string): { status: 'active' | 'maintenance' | 'inactive'; quality: 'good' | 'moderate' | 'poor' } => {
+  const map: Record<string, { status: 'active' | 'maintenance' | 'inactive'; quality: 'good' | 'moderate' | 'poor' }> = {
+    'aktif': { status: 'active', quality: 'good' },
+    'düşük': { status: 'active', quality: 'moderate' },
+    'kritik': { status: 'active', quality: 'poor' },
+    'bakımda': { status: 'maintenance', quality: 'moderate' },
+  };
+  return map[status] || { status: 'active', quality: 'good' };
+};
+
 export default function WaterPage() {
-  const [sources, setSources] = useState<WaterSource[]>(mockWaterSources);
+  const [sources, setSources] = useState<WaterSource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadWaterSources();
+  }, []);
+
+  const loadWaterSources = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setSources([
+          { id: 1, name: 'Ana Su Deposu', location: 'Merkez', capacity: 10000, current_level: 7500, temperature: 15, quality: 'good', last_check: '2024-12-02', status: 'active' },
+          { id: 2, name: 'Otlak Sulağı 1', location: 'Kuzey Otlak', capacity: 2000, current_level: 1200, temperature: 18, quality: 'good', last_check: '2024-12-02', status: 'active' },
+          { id: 3, name: 'Otlak Sulağı 2', location: 'Güney Otlak', capacity: 2000, current_level: 400, temperature: 20, quality: 'moderate', last_check: '2024-12-01', status: 'active' },
+          { id: 4, name: 'Ahır Suluğu', location: 'Ahır 1', capacity: 500, current_level: 450, quality: 'good', last_check: '2024-12-02', status: 'active' },
+          { id: 5, name: 'Yedek Depo', location: 'Depo Alanı', capacity: 5000, current_level: 5000, quality: 'good', last_check: '2024-11-30', status: 'maintenance' },
+        ]);
+        return;
+      }
+
+      const supabaseWater = await api.water.getAll();
+
+      // Map Supabase water sources to component format
+      const mappedSources: WaterSource[] = supabaseWater.map((w: SupabaseWaterSource, index: number) => {
+        const statusQuality = mapWaterStatus(w.status);
+        return {
+          id: parseInt(w.id) || index + 1,
+          name: w.name,
+          location: w.type || 'Merkez',
+          capacity: w.capacity || 1000,
+          current_level: w.current_level || 0,
+          quality: statusQuality.quality,
+          last_check: w.last_cleaned || new Date().toISOString().split('T')[0],
+          status: statusQuality.status,
+        };
+      });
+
+      setSources(mappedSources.length > 0 ? mappedSources : [
+        { id: 1, name: 'Ana Su Deposu', location: 'Merkez', capacity: 10000, current_level: 7500, quality: 'good', last_check: new Date().toISOString().split('T')[0], status: 'active' },
+      ]);
+    } catch (err) {
+      console.error('Error loading water sources:', err);
+      setError('Su kaynakları yüklenemedi');
+      setSources([
+        { id: 1, name: 'Demo Depo', location: 'Merkez', capacity: 5000, current_level: 2500, quality: 'good', last_check: new Date().toISOString().split('T')[0], status: 'active' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalCapacity = sources.reduce((sum, s) => sum + s.capacity, 0);
   const totalCurrent = sources.reduce((sum, s) => sum + s.current_level, 0);

@@ -10,7 +10,9 @@ import {
   CheckCircle,
   XCircle,
   Filter,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, Alert as SupabaseAlert } from '@/lib/supabase';
 
 interface Notification {
   id: number;
@@ -21,15 +23,6 @@ interface Notification {
   created_at: string;
 }
 
-const mockNotifications: Notification[] = [
-  { id: 1, title: 'Sağlık Uyarısı', message: 'TR-001 numaralı hayvanda anormal davranış tespit edildi', type: 'warning', is_read: false, created_at: '2024-12-02T10:30:00' },
-  { id: 2, title: 'Bölge İhlali', message: '3 hayvan tehlikeli bölgeye girdi', type: 'error', is_read: false, created_at: '2024-12-02T10:15:00' },
-  { id: 3, title: 'Günlük Rapor', message: 'Günlük sağlık raporu hazır', type: 'info', is_read: true, created_at: '2024-12-02T09:00:00' },
-  { id: 4, title: 'Aşı Hatırlatması', message: '5 hayvanın aşı zamanı geldi', type: 'warning', is_read: false, created_at: '2024-12-01T14:00:00' },
-  { id: 5, title: 'Yeni Hayvan', message: 'TR-007 numaralı hayvan sisteme eklendi', type: 'success', is_read: true, created_at: '2024-12-01T11:00:00' },
-  { id: 6, title: 'Sistem Güncellemesi', message: 'AI modeli başarıyla güncellendi', type: 'success', is_read: true, created_at: '2024-11-30T16:00:00' },
-];
-
 const typeConfig = {
   info: { icon: Info, bg: 'bg-primary-100', text: 'text-primary-600', border: 'border-primary-200' },
   warning: { icon: AlertTriangle, bg: 'bg-warning-100', text: 'text-warning-600', border: 'border-warning-200' },
@@ -37,22 +30,96 @@ const typeConfig = {
   error: { icon: XCircle, bg: 'bg-danger-100', text: 'text-danger-600', border: 'border-danger-200' },
 };
 
+// Map alert type to notification type
+const mapAlertType = (alertType: string, severity: string): 'info' | 'warning' | 'success' | 'error' => {
+  if (severity === 'kritik' || severity === 'yüksek') return 'error';
+  if (severity === 'orta' || alertType === 'sağlık') return 'warning';
+  if (alertType === 'sistem') return 'info';
+  return 'info';
+};
+
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setNotifications([
+          { id: 1, title: 'Sağlık Uyarısı', message: 'TR-001 numaralı hayvanda anormal davranış tespit edildi', type: 'warning', is_read: false, created_at: '2024-12-02T10:30:00' },
+          { id: 2, title: 'Bölge İhlali', message: '3 hayvan tehlikeli bölgeye girdi', type: 'error', is_read: false, created_at: '2024-12-02T10:15:00' },
+          { id: 3, title: 'Günlük Rapor', message: 'Günlük sağlık raporu hazır', type: 'info', is_read: true, created_at: '2024-12-02T09:00:00' },
+          { id: 4, title: 'Aşı Hatırlatması', message: '5 hayvanın aşı zamanı geldi', type: 'warning', is_read: false, created_at: '2024-12-01T14:00:00' },
+          { id: 5, title: 'Yeni Hayvan', message: 'TR-007 numaralı hayvan sisteme eklendi', type: 'success', is_read: true, created_at: '2024-12-01T11:00:00' },
+          { id: 6, title: 'Sistem Güncellemesi', message: 'AI modeli başarıyla güncellendi', type: 'success', is_read: true, created_at: '2024-11-30T16:00:00' },
+        ]);
+        return;
+      }
+
+      const alerts = await api.alerts.getAll();
+
+      // Map Supabase alerts to notifications
+      const mappedNotifications: Notification[] = alerts.map((a: SupabaseAlert, index: number) => ({
+        id: parseInt(a.id) || index + 1,
+        title: a.title,
+        message: a.message,
+        type: mapAlertType(a.type, a.severity),
+        is_read: a.is_read,
+        created_at: a.created_at,
+      }));
+
+      setNotifications(mappedNotifications.length > 0 ? mappedNotifications : [
+        { id: 1, title: 'Hoş Geldiniz', message: 'Sisteme başarıyla bağlandınız', type: 'success', is_read: false, created_at: new Date().toISOString() },
+      ]);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+      setError('Bildirimler yüklenemedi');
+      setNotifications([
+        { id: 1, title: 'Bağlantı Hatası', message: 'Bildirimler yüklenirken bir hata oluştu', type: 'error', is_read: false, created_at: new Date().toISOString() },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredNotifications = filter === 'unread' 
     ? notifications.filter(n => !n.is_read)
     : notifications;
 
-  const markAsRead = (id: number) => {
+  const markAsRead = async (id: number) => {
     setNotifications(notifications.map(n => 
       n.id === id ? { ...n, is_read: true } : n
     ));
+    
+    if (isSupabaseConfigured()) {
+      try {
+        await api.alerts.markAsRead(String(id));
+      } catch (err) {
+        console.error('Error marking as read:', err);
+      }
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    
+    if (isSupabaseConfigured()) {
+      try {
+        await api.alerts.markAllAsRead();
+      } catch (err) {
+        console.error('Error marking all as read:', err);
+      }
+    }
   };
 
   const deleteNotification = (id: number) => {

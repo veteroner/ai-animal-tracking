@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   Filter,
@@ -11,7 +11,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Loader2,
 } from 'lucide-react';
+import { api, isSupabaseConfigured, Alert as SupabaseAlert } from '@/lib/supabase';
 
 interface Alert {
   id: number;
@@ -24,14 +26,27 @@ interface Alert {
   created_at: string;
 }
 
-const mockAlerts: Alert[] = [
-  { id: 1, animal_id: 1, animal_tag: 'TR-001', alert_type: 'health', severity: 'high', message: 'Anormal vücut sıcaklığı tespit edildi (40.5°C)', status: 'active', created_at: '2024-12-02T10:30:00' },
-  { id: 2, animal_id: 3, animal_tag: 'TR-003', alert_type: 'behavior', severity: 'medium', message: 'Anormal hareket paterni tespit edildi', status: 'active', created_at: '2024-12-02T10:15:00' },
-  { id: 3, alert_type: 'zone', severity: 'critical', message: '3 hayvan tehlikeli bölgeye girdi', status: 'active', created_at: '2024-12-02T09:45:00' },
-  { id: 4, animal_id: 5, animal_tag: 'TR-005', alert_type: 'health', severity: 'high', message: 'Hayvan 24 saattir yem yemedi', status: 'acknowledged', created_at: '2024-12-01T18:00:00' },
-  { id: 5, alert_type: 'system', severity: 'low', message: 'Kamera 2 bağlantısı zayıf', status: 'resolved', created_at: '2024-12-01T14:00:00' },
-  { id: 6, animal_id: 2, animal_tag: 'TR-002', alert_type: 'behavior', severity: 'medium', message: 'Sürüden ayrılma davranışı', status: 'resolved', created_at: '2024-12-01T11:00:00' },
-];
+// Map Supabase severity to component severity
+const mapSeverity = (severity: string): 'low' | 'medium' | 'high' | 'critical' => {
+  const map: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
+    'düşük': 'low',
+    'orta': 'medium',
+    'yüksek': 'high',
+    'kritik': 'critical',
+  };
+  return map[severity] || 'medium';
+};
+
+// Map Supabase type to component type
+const mapAlertType = (type: string): string => {
+  const map: Record<string, string> = {
+    'sağlık': 'health',
+    'güvenlik': 'zone',
+    'sistem': 'system',
+    'aktivite': 'behavior',
+  };
+  return map[type] || 'system';
+};
 
 const severityConfig = {
   low: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Düşük' },
@@ -54,9 +69,61 @@ const statusConfig = {
 };
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setAlerts([
+          { id: 1, animal_id: 1, animal_tag: 'TR-001', alert_type: 'health', severity: 'high', message: 'Anormal vücut sıcaklığı tespit edildi (40.5°C)', status: 'active', created_at: '2024-12-02T10:30:00' },
+          { id: 2, animal_id: 3, animal_tag: 'TR-003', alert_type: 'behavior', severity: 'medium', message: 'Anormal hareket paterni tespit edildi', status: 'active', created_at: '2024-12-02T10:15:00' },
+          { id: 3, alert_type: 'zone', severity: 'critical', message: '3 hayvan tehlikeli bölgeye girdi', status: 'active', created_at: '2024-12-02T09:45:00' },
+          { id: 4, animal_id: 5, animal_tag: 'TR-005', alert_type: 'health', severity: 'high', message: 'Hayvan 24 saattir yem yemedi', status: 'acknowledged', created_at: '2024-12-01T18:00:00' },
+          { id: 5, alert_type: 'system', severity: 'low', message: 'Kamera 2 bağlantısı zayıf', status: 'resolved', created_at: '2024-12-01T14:00:00' },
+          { id: 6, animal_id: 2, animal_tag: 'TR-002', alert_type: 'behavior', severity: 'medium', message: 'Sürüden ayrılma davranışı', status: 'resolved', created_at: '2024-12-01T11:00:00' },
+        ]);
+        return;
+      }
+
+      const supabaseAlerts = await api.alerts.getAll();
+
+      // Map Supabase alerts to component format
+      const mappedAlerts: Alert[] = supabaseAlerts.map((a: SupabaseAlert, index: number) => ({
+        id: parseInt(a.id) || index + 1,
+        animal_id: a.animal_id ? parseInt(a.animal_id) : undefined,
+        alert_type: mapAlertType(a.type),
+        severity: mapSeverity(a.severity),
+        message: a.message || a.title,
+        status: a.is_read ? 'resolved' : 'active',
+        created_at: a.created_at,
+      }));
+
+      setAlerts(mappedAlerts.length > 0 ? mappedAlerts : [
+        { id: 1, alert_type: 'system', severity: 'low', message: 'Sistem aktif, uyarı bulunmuyor', status: 'resolved', created_at: new Date().toISOString() },
+      ]);
+    } catch (err) {
+      console.error('Error loading alerts:', err);
+      setError('Uyarılar yüklenemedi');
+      // Fallback to demo data
+      setAlerts([
+        { id: 1, alert_type: 'system', severity: 'medium', message: 'Veritabanı bağlantısı kontrol ediliyor', status: 'active', created_at: new Date().toISOString() },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAlerts = alerts.filter(alert => {
     const matchesSeverity = filterSeverity === 'all' || alert.severity === filterSeverity;
@@ -64,8 +131,18 @@ export default function AlertsPage() {
     return matchesSeverity && matchesStatus;
   });
 
-  const updateStatus = (id: number, status: Alert['status']) => {
+  const updateStatus = async (id: number, status: Alert['status']) => {
+    // Update locally first
     setAlerts(alerts.map(a => a.id === id ? { ...a, status } : a));
+    
+    // Try to update in Supabase
+    if (isSupabaseConfigured() && status === 'resolved') {
+      try {
+        await api.alerts.markAsRead(String(id));
+      } catch (err) {
+        console.error('Error updating alert:', err);
+      }
+    }
   };
 
   const activeCount = alerts.filter(a => a.status === 'active').length;
