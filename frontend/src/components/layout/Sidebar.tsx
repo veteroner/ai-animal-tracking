@@ -57,14 +57,30 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <>
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-          <Dog className="w-6 h-6 text-white" />
+      {/* Teknova Logo */}
+      <div className="flex flex-col items-center gap-3 px-6 py-5 border-b border-gray-200">
+        <div className="relative">
+          {/* Background Circle with Gradient */}
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/40">
+            {/* Inner Circle */}
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+              {/* AI Eye Symbol */}
+              <div className="relative">
+                <div className="w-8 h-5 border-2 border-white rounded-full flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                </div>
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-amber-400 -translate-y-1/2"></div>
+              </div>
+            </div>
+          </div>
+          {/* Paw Print Accent */}
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">
+            <Dog className="w-3 h-3 text-white" />
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-gray-900">AI Hayvan</h1>
-          <p className="text-xs text-gray-500">Takip Sistemi</p>
+        <div className="text-center">
+          <h1 className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700 tracking-wider text-lg">TEKNOVA</h1>
+          <p className="text-xs text-gray-500">AI Animal Tracking</p>
         </div>
       </div>
 
@@ -125,11 +141,15 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* System Status */}
+      {/* System Status + Copyright */}
       <div className="px-4 py-4 border-t border-gray-200">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 rounded-full bg-success-500 animate-pulse" />
           <span className="text-xs text-gray-500">Sistem Aktif</span>
+        </div>
+        <div className="text-center">
+          <p className="text-[10px] text-gray-400">© 2025 Teknova</p>
+          <p className="text-[10px] text-gray-400">Tüm hakları saklıdır.</p>
         </div>
       </div>
     </>

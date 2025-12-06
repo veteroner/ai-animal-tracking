@@ -77,10 +77,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Çiftlik durumunuza genel bakış</p>
+      {/* Page Header with Teknova Branding */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Çiftlik durumunuza genel bakış</p>
+        </div>
+        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md shadow-primary-500/30">
+            <Dog className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700 tracking-wide text-sm">TEKNOVA</p>
+            <p className="text-[10px] text-gray-400">AI Animal Tracking</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}

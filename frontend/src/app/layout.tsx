@@ -5,8 +5,8 @@ import Header from '@/components/layout/Header';
 import ConnectionStatus from '@/components/ui/ConnectionStatus';
 
 export const metadata: Metadata = {
-  title: 'AI Hayvan Takip Sistemi',
-  description: 'Yapay zeka destekli hayvan izleme ve sağlık takip sistemi',
+  title: 'Teknova AI Animal Tracking',
+  description: 'Teknova - Yapay zeka destekli hayvan izleme ve sağlık takip sistemi',
 };
 
 export default function RootLayout({
