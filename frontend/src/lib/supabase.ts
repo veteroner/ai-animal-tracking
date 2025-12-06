@@ -1,9 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+// Use real URL from env, or a valid placeholder for build time
+const getSupabaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (envUrl && envUrl.startsWith('https://') && envUrl.includes('.supabase.co')) {
+    return envUrl;
+  }
+  // Valid placeholder URL for build time - will be replaced at runtime
+  return 'https://placeholder.supabase.co';
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const getSupabaseKey = (): string => {
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDI0MDU2MDAsImV4cCI6MTk1Nzk4MTYwMH0.placeholder-key-for-build';
+};
+
+const supabaseUrl = getSupabaseUrl();
+const supabaseAnonKey = getSupabaseKey();
+
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+// Check if we have real credentials (not placeholder)
+export const isSupabaseConfigured = (): boolean => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  return url !== '' && 
+         url.startsWith('https://') && 
+         url.includes('.supabase.co') && 
+         !url.includes('placeholder') &&
+         !url.includes('example');
+};
 
 // Types
 export interface Animal {
@@ -105,7 +129,8 @@ export interface WaterSource {
 export const api = {
   // Animals
   animals: {
-    getAll: async () => {
+    getAll: async (): Promise<Animal[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('animals')
         .select('*')
@@ -113,7 +138,8 @@ export const api = {
       if (error) throw error;
       return data as Animal[];
     },
-    getById: async (id: string) => {
+    getById: async (id: string): Promise<Animal | null> => {
+      if (!isSupabaseConfigured()) return null;
       const { data, error } = await supabase
         .from('animals')
         .select('*')
@@ -149,7 +175,8 @@ export const api = {
 
   // Zones
   zones: {
-    getAll: async () => {
+    getAll: async (): Promise<Zone[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('zones')
         .select('*')
@@ -157,7 +184,8 @@ export const api = {
       if (error) throw error;
       return data as Zone[];
     },
-    getById: async (id: string) => {
+    getById: async (id: string): Promise<Zone | null> => {
+      if (!isSupabaseConfigured()) return null;
       const { data, error } = await supabase
         .from('zones')
         .select('*')
@@ -171,6 +199,7 @@ export const api = {
   // Health Records
   health: {
     getAll: async () => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('health_records')
         .select('*, animals(name, tag)')
@@ -178,7 +207,8 @@ export const api = {
       if (error) throw error;
       return data;
     },
-    getByAnimal: async (animalId: string) => {
+    getByAnimal: async (animalId: string): Promise<HealthRecord[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('health_records')
         .select('*')
@@ -188,6 +218,7 @@ export const api = {
       return data as HealthRecord[];
     },
     create: async (record: Omit<HealthRecord, 'id' | 'created_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
       const { data, error } = await supabase
         .from('health_records')
         .insert(record)
@@ -200,7 +231,8 @@ export const api = {
 
   // Alerts
   alerts: {
-    getAll: async () => {
+    getAll: async (): Promise<Alert[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('alerts')
         .select('*')
@@ -208,7 +240,8 @@ export const api = {
       if (error) throw error;
       return data as Alert[];
     },
-    getUnread: async () => {
+    getUnread: async (): Promise<Alert[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('alerts')
         .select('*')
@@ -218,6 +251,7 @@ export const api = {
       return data as Alert[];
     },
     markAsRead: async (id: string) => {
+      if (!isSupabaseConfigured()) return;
       const { error } = await supabase
         .from('alerts')
         .update({ is_read: true })
@@ -225,6 +259,7 @@ export const api = {
       if (error) throw error;
     },
     markAllAsRead: async () => {
+      if (!isSupabaseConfigured()) return;
       const { error } = await supabase
         .from('alerts')
         .update({ is_read: true })
@@ -235,7 +270,8 @@ export const api = {
 
   // Poultry
   poultry: {
-    getAll: async () => {
+    getAll: async (): Promise<Poultry[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('poultry')
         .select('*')
@@ -243,7 +279,8 @@ export const api = {
       if (error) throw error;
       return data as Poultry[];
     },
-    getById: async (id: string) => {
+    getById: async (id: string): Promise<Poultry | null> => {
+      if (!isSupabaseConfigured()) return null;
       const { data, error } = await supabase
         .from('poultry')
         .select('*')
@@ -257,6 +294,7 @@ export const api = {
   // Egg Production
   eggs: {
     getAll: async () => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('egg_production')
         .select('*, poultry(coop_name)')
@@ -264,7 +302,8 @@ export const api = {
       if (error) throw error;
       return data;
     },
-    getByPoultry: async (poultryId: string) => {
+    getByPoultry: async (poultryId: string): Promise<EggProduction[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('egg_production')
         .select('*')
@@ -274,6 +313,7 @@ export const api = {
       return data as EggProduction[];
     },
     create: async (record: Omit<EggProduction, 'id' | 'created_at'>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
       const { data, error } = await supabase
         .from('egg_production')
         .insert(record)
@@ -286,7 +326,8 @@ export const api = {
 
   // Water Sources
   water: {
-    getAll: async () => {
+    getAll: async (): Promise<WaterSource[]> => {
+      if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('water_sources')
         .select('*')
@@ -299,6 +340,17 @@ export const api = {
   // Dashboard Stats
   stats: {
     getDashboard: async () => {
+      if (!isSupabaseConfigured()) {
+        return {
+          totalAnimals: 0,
+          healthyAnimals: 0,
+          sickAnimals: 0,
+          unreadAlerts: 0,
+          totalPoultry: 0,
+          activeZones: 0,
+        };
+      }
+      
       const [animals, alerts, zones, poultry] = await Promise.all([
         supabase.from('animals').select('id, status', { count: 'exact' }),
         supabase.from('alerts').select('id', { count: 'exact' }).eq('is_read', false),

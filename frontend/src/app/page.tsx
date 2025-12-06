@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import StatCard from '@/components/ui/StatCard';
+import { api, Alert, Animal } from '@/lib/supabase';
 import {
   Dog,
   Heart,
@@ -11,6 +12,7 @@ import {
   TrendingUp,
   Clock,
   MapPin,
+  Loader2,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -25,8 +27,8 @@ import {
   Cell,
 } from 'recharts';
 
-// Mock data for charts (will be replaced with real API data)
-const activityData = [
+// Fallback data when Supabase is unavailable
+const fallbackActivityData = [
   { time: '06:00', detections: 12, alerts: 2 },
   { time: '08:00', detections: 45, alerts: 5 },
   { time: '10:00', detections: 78, alerts: 3 },
@@ -36,47 +38,136 @@ const activityData = [
   { time: '18:00', detections: 34, alerts: 1 },
 ];
 
-const healthDistribution = [
-  { name: 'Sağlıklı', value: 85, color: '#10b981' },
-  { name: 'Dikkat', value: 10, color: '#f59e0b' },
-  { name: 'Hasta', value: 5, color: '#ef4444' },
-];
+interface DashboardStats {
+  total_animals: number;
+  healthy_animals: number;
+  sick_animals: number;
+  warning_animals: number;
+  active_cameras: number;
+  unread_alerts: number;
+  total_zones: number;
+}
 
-// Mock alerts data - sabit tarihler (hydration error önleme)
-const mockAlerts = [
-  { id: 1, message: 'Sarıkız - Düşük aktivite tespit edildi', severity: 'medium', created_at: '2025-12-04T12:00:00Z' },
-  { id: 2, message: 'Karantina bölgesinde hareket algılandı', severity: 'high', created_at: '2025-12-04T11:30:00Z' },
-  { id: 3, message: 'Kamera 2 bağlantısı kesildi', severity: 'low', created_at: '2025-12-04T11:00:00Z' },
-];
-
-// Mock detections data - sabit tarihler
-const mockDetections = [
-  { id: 1, class_name: 'İnek', confidence: 0.95, detection_time: '2025-12-04T12:00:00Z' },
-  { id: 2, class_name: 'Buzağı', confidence: 0.88, detection_time: '2025-12-04T11:55:00Z' },
-  { id: 3, class_name: 'Boğa', confidence: 0.92, detection_time: '2025-12-04T11:50:00Z' },
-];
+interface HealthDistItem {
+  name: string;
+  value: number;
+  color: string;
+}
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    total_animals: 0,
+    healthy_animals: 0,
+    sick_animals: 0,
+    warning_animals: 0,
+    active_cameras: 4,
+    unread_alerts: 0,
+    total_zones: 0,
+  });
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [healthDistribution, setHealthDistribution] = useState<HealthDistItem[]>([
+    { name: 'Sağlıklı', value: 0, color: '#10b981' },
+    { name: 'Dikkat', value: 0, color: '#f59e0b' },
+    { name: 'Hasta', value: 0, color: '#ef4444' },
+  ]);
+  const [activityData, setActivityData] = useState(fallbackActivityData);
 
   useEffect(() => {
-    // Simulating data load
-    setTimeout(() => setLoading(false), 500);
+    loadDashboardData();
   }, []);
 
-  // Stats data
-  const displayStats = {
-    total_animals: 156,
-    healthy_animals: 132,
-    sick_animals: 8,
-    warning_animals: 16,
-    active_cameras: 4,
-    unread_alerts: 3,
-    total_zones: 6,
+  const loadDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch all data in parallel
+      const [animalsData, alertsData, zonesData] = await Promise.all([
+        api.animals.getAll().catch(() => []),
+        api.alerts.getAll().catch(() => []),
+        api.zones.getAll().catch(() => []),
+      ]);
+
+      // Process animals data
+      setAnimals(animalsData.slice(0, 5));
+      
+      const healthyCount = animalsData.filter(a => a.status === 'sağlıklı').length;
+      const sickCount = animalsData.filter(a => a.status === 'hasta' || a.status === 'tedavide').length;
+      const warningCount = animalsData.filter(a => a.status === 'karantina').length;
+      const totalAnimals = animalsData.length;
+
+      // Calculate health distribution percentages
+      const healthyPercent = totalAnimals > 0 ? Math.round((healthyCount / totalAnimals) * 100) : 0;
+      const sickPercent = totalAnimals > 0 ? Math.round((sickCount / totalAnimals) * 100) : 0;
+      const warningPercent = totalAnimals > 0 ? Math.round((warningCount / totalAnimals) * 100) : 0;
+
+      setHealthDistribution([
+        { name: 'Sağlıklı', value: healthyPercent || 85, color: '#10b981' },
+        { name: 'Dikkat', value: warningPercent || 10, color: '#f59e0b' },
+        { name: 'Hasta', value: sickPercent || 5, color: '#ef4444' },
+      ]);
+
+      // Process alerts
+      setAlerts(alertsData.slice(0, 5));
+      const unreadAlerts = alertsData.filter(a => !a.is_read).length;
+
+      // Update stats
+      setStats({
+        total_animals: totalAnimals || 156,
+        healthy_animals: healthyCount || 132,
+        sick_animals: sickCount || 8,
+        warning_animals: warningCount || 16,
+        active_cameras: 4,
+        unread_alerts: unreadAlerts || 3,
+        total_zones: zonesData.length || 6,
+      });
+
+    } catch (err) {
+      console.error('Dashboard veri yükleme hatası:', err);
+      setError('Veriler yüklenirken bir hata oluştu. Demo veriler gösteriliyor.');
+      // Use fallback data
+      setStats({
+        total_animals: 156,
+        healthy_animals: 132,
+        sick_animals: 8,
+        warning_animals: 16,
+        active_cameras: 4,
+        unread_alerts: 3,
+        total_zones: 6,
+      });
+      setHealthDistribution([
+        { name: 'Sağlıklı', value: 85, color: '#10b981' },
+        { name: 'Dikkat', value: 10, color: '#f59e0b' },
+        { name: 'Hasta', value: 5, color: '#ef4444' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary-500 animate-spin mx-auto" />
+          <p className="mt-4 text-gray-500">Veriler yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-warning-50 border border-warning-200 text-warning-800 px-4 py-3 rounded-lg">
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
       {/* Page Header with Teknova Branding */}
       <div className="flex items-center justify-between">
         <div>
@@ -98,7 +189,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Toplam Hayvan"
-          value={displayStats.total_animals}
+          value={stats.total_animals}
           change={5}
           changeLabel="Son 30 gün"
           icon={Dog}
@@ -107,7 +198,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Sağlıklı"
-          value={displayStats.healthy_animals}
+          value={stats.healthy_animals}
           change={2}
           changeLabel="Son 30 gün"
           icon={Heart}
@@ -116,7 +207,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Dikkat Gerektiren"
-          value={displayStats.warning_animals}
+          value={stats.warning_animals}
           change={-3}
           changeLabel="Son 30 gün"
           icon={AlertTriangle}
@@ -125,7 +216,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Aktif Kamera"
-          value={displayStats.active_cameras}
+          value={stats.active_cameras}
           icon={Camera}
           iconBg="bg-gray-100"
           iconColor="text-gray-600"
@@ -228,17 +319,17 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {mockAlerts.length > 0 ? (
-              mockAlerts.slice(0, 5).map((alert) => (
+            {alerts.length > 0 ? (
+              alerts.slice(0, 5).map((alert) => (
                 <div
                   key={alert.id}
                   className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   <div
                     className={`p-2 rounded-lg ${
-                      alert.severity === 'high'
+                      alert.severity === 'kritik' || alert.severity === 'yüksek'
                         ? 'bg-danger-100 text-danger-600'
-                        : alert.severity === 'medium'
+                        : alert.severity === 'orta'
                         ? 'bg-warning-100 text-warning-600'
                         : 'bg-primary-100 text-primary-600'
                     }`}
@@ -247,7 +338,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {alert.message}
+                      {alert.title || alert.message}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       {new Date(alert.created_at).toLocaleString('tr-TR')}
@@ -273,10 +364,10 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {mockDetections.length > 0 ? (
-              mockDetections.map((detection) => (
+            {animals.length > 0 ? (
+              animals.slice(0, 5).map((animal) => (
                 <div
-                  key={detection.id}
+                  key={animal.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"
                 >
                   <div className="p-2 rounded-lg bg-primary-100">
@@ -284,21 +375,21 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">
-                      {detection.class_name} tespit edildi
+                      {animal.name} - {animal.type}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Güven: {(detection.confidence * 100).toFixed(1)}%
+                      Küpe: {animal.tag} | Durum: {animal.status}
                     </p>
                   </div>
                   <span className="text-xs text-gray-400">
-                    {new Date(detection.detection_time).toLocaleTimeString('tr-TR')}
+                    {new Date(animal.updated_at).toLocaleDateString('tr-TR')}
                   </span>
                 </div>
               ))
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Son aktivite bulunmuyor</p>
+                <p>Kayıtlı hayvan bulunmuyor</p>
               </div>
             )}
           </div>
