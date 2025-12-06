@@ -11,11 +11,11 @@ struct APIConfig {
     // 🔧 GELİŞTİRME (Lokal)
     // static let baseURL = "http://172.20.10.3:8000"
     
-    // 🚀 PRODÜKSİYON (Hugging Face)
-    // static let baseURL = "https://teknova-animal-tracking.hf.space"
-    
     // ☁️ COLAB (ngrok)
-    static let baseURL = "https://unsentimentalized-gaston-hypolithic.ngrok-free.dev"
+    // static let baseURL = "https://unsentimentalized-gaston-hypolithic.ngrok-free.dev"
+    
+    // 🚀 PRODÜKSİYON (Hugging Face) - 24/7 Online
+    static let baseURL = "https://veteroner-teknova-ai-tracker.hf.space"
     
     // ==============================================
     
