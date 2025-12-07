@@ -28,6 +28,7 @@
 		A1000025 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000025 /* SettingsView.swift */; };
 		A1000026 /* FarmMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000026 /* FarmMonitorView.swift */; };
 		A1000027 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000027 /* NotificationsView.swift */; };
+		A1000028 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000028 /* HelpView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 		A2000025 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A2000026 /* FarmMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FarmMonitorView.swift; sourceTree = "<group>"; };
 		A2000027 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		A2000028 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +116,7 @@ A2000024 /* ReportsView.swift */,
 A2000025 /* SettingsView.swift */,
 A2000026 /* FarmMonitorView.swift */,
 A2000027 /* NotificationsView.swift */,
+A2000028 /* HelpView.swift */,
 );
 			path = Views;
 			sourceTree = "<group>";
@@ -234,6 +237,7 @@ A1000024 /* ReportsView.swift in Sources */,
 A1000025 /* SettingsView.swift in Sources */,
 A1000026 /* FarmMonitorView.swift in Sources */,
 A1000027 /* NotificationsView.swift in Sources */,
+A1000028 /* HelpView.swift in Sources */,
 );
 			runOnlyForDeploymentPostprocessing = 0;
 		};

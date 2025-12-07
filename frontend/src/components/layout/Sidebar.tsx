@@ -25,6 +25,7 @@ import {
   Users,
   LayoutGrid,
   Wifi,
+  HelpCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -62,6 +63,7 @@ const navigation: NavItem[] = [
   { name: 'Uyarılar', href: '/alerts', icon: AlertTriangle },
   { name: 'Bildirimler', href: '/notifications', icon: Bell },
   { name: 'Profil', href: '/profile', icon: User },
+  { name: 'Yardım', href: '/help', icon: HelpCircle },
   { name: 'Ayarlar', href: '/settings', icon: Settings },
 ];
 

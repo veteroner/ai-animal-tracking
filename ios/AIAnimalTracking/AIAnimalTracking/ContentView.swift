@@ -94,6 +94,11 @@ struct MoreMenuView: View {
                             MoreMenuItem(icon: "exclamationmark.triangle.fill", title: "Uyarılar", subtitle: "Sistem uyarıları", color: .orange)
                         }
                         
+                        // Yardım
+                        NavigationLink(destination: HelpView()) {
+                            MoreMenuItem(icon: "questionmark.circle.fill", title: "Yardım", subtitle: "Kullanım kılavuzu ve SSS", color: .cyan)
+                        }
+                        
                         // Ayarlar
                         NavigationLink(destination: SettingsView()) {
                             MoreMenuItem(icon: "gearshape.fill", title: "Ayarlar", subtitle: "Uygulama ayarları", color: .gray)

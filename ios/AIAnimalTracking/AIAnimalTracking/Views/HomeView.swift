@@ -49,9 +49,6 @@ struct HomeView: View {
                         
                         // Quick Actions
                         quickActionsSection
-                        
-                        // Info Card
-                        infoCard
                     }
                     .padding()
                 }
@@ -346,47 +343,6 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.tertiarySystemBackground))
         )
-    }
-    
-    // MARK: - Info Card
-    private var infoCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "info.circle.fill")
-                    .foregroundColor(TeknovaColors.secondary)
-                Text("Nasıl Çalışır?")
-                    .font(TeknovaFont.title(16))
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                infoRow("1.", "Kamera sekmesine gidin")
-                infoRow("2.", "Hayvanları kameraya gösterin")
-                infoRow("3.", "Sistem otomatik olarak tespit eder")
-                infoRow("4.", "Yeni hayvanlar otomatik kayıt edilir")
-                infoRow("5.", "Daha önce görülen hayvanlar tanınır")
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(TeknovaColors.secondary.opacity(0.1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(TeknovaColors.secondary.opacity(0.3), lineWidth: 1)
-        )
-    }
-    
-    private func infoRow(_ number: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(number)
-                .font(TeknovaFont.caption())
-                .fontWeight(.bold)
-                .foregroundColor(TeknovaColors.secondary)
-            Text(text)
-                .font(TeknovaFont.caption())
-                .foregroundColor(.secondary)
-        }
     }
     
     // MARK: - Load Data
