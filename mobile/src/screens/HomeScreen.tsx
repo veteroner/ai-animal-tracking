@@ -138,6 +138,64 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* New Modules */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🆕 Yeni Modüller</Text>
+        <View style={styles.moduleGrid}>
+          <TouchableOpacity style={[styles.moduleCard, { backgroundColor: '#0ea5e9' }]}>
+            <Text style={styles.moduleIcon}>📡</Text>
+            <Text style={styles.moduleTitle}>Çiftlik İzleme</Text>
+            <Text style={styles.moduleDesc}>7/24 AI kamera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.moduleCard, { backgroundColor: '#ec4899' }]}>
+            <Text style={styles.moduleIcon}>💕</Text>
+            <Text style={styles.moduleTitle}>Üreme Takibi</Text>
+            <Text style={styles.moduleDesc}>Kızgınlık & Gebelik</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.moduleCard, { backgroundColor: '#f59e0b' }]}>
+            <Text style={styles.moduleIcon}>🐔</Text>
+            <Text style={styles.moduleTitle}>Kanatlı Modülü</Text>
+            <Text style={styles.moduleDesc}>Kümes takibi</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.moduleCard, { backgroundColor: '#22c55e' }]}>
+            <Text style={styles.moduleIcon}>❤️</Text>
+            <Text style={styles.moduleTitle}>Sağlık</Text>
+            <Text style={styles.moduleDesc}>BCS & Topallık</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* AI Features */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🧠 Yapay Zeka Özellikleri</Text>
+        <View style={styles.featureList}>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>YOLOv8 ile hayvan tespiti</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>Auto Re-ID ile tanıma</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>Davranış analizi (17 tip)</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>Sağlık izleme & BCS</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>Kızgınlık tespiti</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✅</Text>
+            <Text style={styles.featureText}>Doğum algılama</Text>
+          </View>
+        </View>
+      </View>
+
       {/* Info */}
       <View style={[styles.card, styles.infoCard]}>
         <Text style={styles.infoTitle}>ℹ️ Nasıl Çalışır?</Text>
@@ -285,5 +343,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#93c5fd',
     lineHeight: 22,
+  },
+  moduleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  moduleCard: {
+    width: '47%',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  moduleIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  moduleTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  moduleDesc: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  featureList: {
+    marginTop: 8,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  featureCheck: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#d1d5db',
   },
 });

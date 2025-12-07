@@ -8,6 +8,9 @@ import HomeScreen from '../screens/HomeScreen';
 import CameraScreen from '../screens/CameraScreen';
 import GalleryScreen from '../screens/GalleryScreen';
 import AlertsScreen from '../screens/AlertsScreen';
+import FarmMonitorScreen from '../screens/FarmMonitorScreen';
+import ReproductionScreen from '../screens/ReproductionScreen';
+import PoultryScreen from '../screens/PoultryScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,9 +18,12 @@ const Tab = createBottomTabNavigator();
 const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
   const icons: Record<string, string> = {
     'Ana Sayfa': '🏠',
+    'İzleme': '📡',
     'Kamera': '📷',
     'Hayvanlar': '🐄',
     'Uyarılar': '🔔',
+    'Üreme': '💕',
+    'Kanatlı': '🐔',
   };
 
   return (
@@ -52,6 +58,11 @@ export default function AppNavigator() {
           options={{ title: 'AI Hayvan Takip' }}
         />
         <Tab.Screen 
+          name="İzleme" 
+          component={FarmMonitorScreen}
+          options={{ title: 'Çiftlik İzleme' }}
+        />
+        <Tab.Screen 
           name="Kamera" 
           component={CameraScreen}
           options={{ title: 'Canlı Tespit' }}
@@ -60,6 +71,16 @@ export default function AppNavigator() {
           name="Hayvanlar" 
           component={GalleryScreen}
           options={{ title: 'Kayıtlı Hayvanlar' }}
+        />
+        <Tab.Screen 
+          name="Üreme" 
+          component={ReproductionScreen}
+          options={{ title: 'Üreme Takibi' }}
+        />
+        <Tab.Screen 
+          name="Kanatlı" 
+          component={PoultryScreen}
+          options={{ title: 'Kanatlı Modülü' }}
         />
         <Tab.Screen 
           name="Uyarılar" 
