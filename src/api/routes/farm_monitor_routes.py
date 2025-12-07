@@ -116,6 +116,148 @@ def _get_or_create_monitor(farm_id: str):
 # Endpoints
 # ==========================================
 
+# ==========================================
+# Mobile API Compatible Endpoints (Simplified)
+# ==========================================
+
+DEFAULT_FARM_ID = "default-farm"
+
+@router.get("/status")
+async def get_status():
+    """
+    Çiftlik izleme durumunu döndürür.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    monitor = _get_or_create_monitor(DEFAULT_FARM_ID)
+    
+    if isinstance(monitor, dict):
+        cameras_list = []
+        for cam_id, cam in monitor["cameras"].items():
+            cameras_list.append({
+                "id": cam.get("id", cam_id),
+                "name": cam.get("name", f"Kamera {cam_id}"),
+                "url": cam.get("url", ""),
+                "status": cam.get("status", "inactive"),
+                "fps": cam.get("fps", 0),
+                "total_frames": cam.get("total_frames", 0),
+                "animals_detected": cam.get("animals_detected", 0),
+                "events_count": cam.get("events_count", 0),
+            })
+        
+        return {
+            "is_running": monitor["is_running"],
+            "cameras_count": len(monitor["cameras"]),
+            "active_cameras": len([c for c in cameras_list if c["status"] == "active"]),
+            "total_detections": monitor["stats"]["total_detections"],
+            "events_today": len(monitor["alerts"]),
+            "uptime_seconds": 0,
+            "cameras": cameras_list,
+        }
+    else:
+        # Gerçek FarmMonitor instance
+        status = monitor.get_status()
+        cameras_list = []
+        for cam_id, cam_status in status.get("cameras", {}).items():
+            cameras_list.append({
+                "id": cam_id,
+                "name": cam_status.get("name", f"Kamera {cam_id}"),
+                "url": cam_status.get("url", ""),
+                "status": "active" if cam_status.get("is_active") else "inactive",
+                "fps": cam_status.get("fps", 0),
+                "total_frames": cam_status.get("total_frames", 0),
+                "animals_detected": cam_status.get("animals_detected", 0),
+                "events_count": cam_status.get("events_count", 0),
+            })
+        
+        return {
+            "is_running": status.get("is_running", False),
+            "cameras_count": len(cameras_list),
+            "active_cameras": len([c for c in cameras_list if c["status"] == "active"]),
+            "total_detections": status.get("stats", {}).get("total_detections", 0),
+            "events_today": status.get("alerts_count", 0),
+            "uptime_seconds": status.get("uptime_seconds", 0),
+            "cameras": cameras_list,
+        }
+
+
+@router.post("/cameras")
+async def add_camera_simple(data: Dict[str, Any]):
+    """
+    Yeni kamera ekle.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    monitor = _get_or_create_monitor(DEFAULT_FARM_ID)
+    
+    name = data.get("name", "Kamera")
+    url = data.get("url", "")
+    auto_start = data.get("auto_start", False)
+    
+    import uuid
+    camera_id = f"cam-{uuid.uuid4().hex[:8]}"
+    
+    if isinstance(monitor, dict):
+        monitor["cameras"][camera_id] = {
+            "id": camera_id,
+            "name": name,
+            "url": url,
+            "status": "active" if auto_start else "inactive",
+            "fps": 0,
+            "total_frames": 0,
+            "animals_detected": 0,
+            "events_count": 0,
+        }
+        return {"success": True, "camera_id": camera_id}
+    else:
+        cam = monitor.add_camera(camera_id, name, url)
+        return {"success": True, "camera_id": camera_id}
+
+
+@router.delete("/cameras/{camera_id}")
+async def remove_camera_simple(camera_id: str):
+    """Kamerayı kaldır."""
+    monitor = _get_or_create_monitor(DEFAULT_FARM_ID)
+    
+    if isinstance(monitor, dict):
+        if camera_id in monitor["cameras"]:
+            del monitor["cameras"][camera_id]
+            return {"success": True}
+        raise HTTPException(status_code=404, detail="Kamera bulunamadı")
+    else:
+        if monitor.remove_camera(camera_id):
+            return {"success": True}
+        raise HTTPException(status_code=404, detail="Kamera bulunamadı")
+
+
+@router.post("/start")
+async def start_monitoring_simple(background_tasks: BackgroundTasks):
+    """İzlemeyi başlat."""
+    monitor = _get_or_create_monitor(DEFAULT_FARM_ID)
+    
+    if isinstance(monitor, dict):
+        monitor["is_running"] = True
+        return {"success": True, "message": "İzleme başlatıldı"}
+    else:
+        background_tasks.add_task(monitor.start)
+        return {"success": True, "message": "İzleme başlatıldı"}
+
+
+@router.post("/stop")
+async def stop_monitoring_simple():
+    """İzlemeyi durdur."""
+    monitor = _get_or_create_monitor(DEFAULT_FARM_ID)
+    
+    if isinstance(monitor, dict):
+        monitor["is_running"] = False
+        return {"success": True, "message": "İzleme durduruldu"}
+    else:
+        monitor.stop()
+        return {"success": True, "message": "İzleme durduruldu"}
+
+
+# ==========================================
+# Original Farm-Based Endpoints
+# ==========================================
+
 @router.post("/farms/{farm_id}/cameras", response_model=Dict[str, Any])
 async def add_camera(
     farm_id: str,

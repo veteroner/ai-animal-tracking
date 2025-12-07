@@ -11,7 +11,7 @@ from datetime import datetime, date
 from enum import Enum
 
 
-router = APIRouter(prefix="/api/reproduction", tags=["reproduction"])
+router = APIRouter(prefix="/reproduction", tags=["reproduction"])
 
 
 # === Pydantic Models ===
@@ -172,15 +172,56 @@ births_db: Dict[str, Dict] = {}
 breeding_db: Dict[str, Dict] = {}
 
 
+# === Stats Endpoint (Mobile API Compatible) ===
+
+@router.get("/stats")
+async def get_reproduction_stats():
+    """
+    Üreme istatistiklerini döndürür.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    # Aktif kızgınlık tespitleri
+    estrus_list = list(estrus_db.values())
+    detected_count = len([e for e in estrus_list if e.get('status') in ['detected', 'confirmed']])
+    
+    # Aktif gebelikler
+    pregnancies_list = list(pregnancies_db.values())
+    active_pregnancies = len([p for p in pregnancies_list if p.get('status') == 'aktif'])
+    
+    # Yaklaşan doğumlar (30 gün içinde)
+    from datetime import timedelta
+    today = date.today()
+    upcoming = len([
+        p for p in pregnancies_list 
+        if p.get('status') == 'aktif' and 
+        p.get('expected_birth_date') and 
+        (p['expected_birth_date'] - today).days <= 30
+    ])
+    
+    # Başarı oranı
+    total_breedings = len(breeding_db)
+    successful = len([b for b in breeding_db.values() if b.get('success')])
+    success_rate = (successful / total_breedings * 100) if total_breedings > 0 else 0
+    
+    return {
+        "total_estrus": len(estrus_list),
+        "total_pregnancies": len(pregnancies_list),
+        "success_rate": round(success_rate, 1),
+        "upcoming_births": upcoming,
+        "active_estrus": detected_count,
+        "active_pregnancies": active_pregnancies,
+    }
+
+
 # === Estrus Endpoints ===
 
-@router.get("/estrus", response_model=List[EstrusDetectionResponse])
+@router.get("/estrus")
 async def get_estrus_detections(
     animal_id: Optional[str] = None,
     status: Optional[EstrusStatus] = None,
     limit: int = Query(default=50, le=100)
 ):
-    """Kızgınlık tespitlerini listeler."""
+    """Kızgınlık tespitlerini listeler. Mobil uyumlu response formatı."""
     results = list(estrus_db.values())
     
     if animal_id:
@@ -188,7 +229,20 @@ async def get_estrus_detections(
     if status:
         results = [r for r in results if r['status'] == status.value]
     
-    return results[:limit]
+    # Mobil uygulamanın beklediği format
+    detections = []
+    for r in results[:limit]:
+        detections.append({
+            "id": r.get('id'),
+            "animal_id": r.get('animal_id'),
+            "animal_name": f"Hayvan {r.get('animal_id', '')[-3:]}",  # Demo için
+            "detection_date": r.get('detection_time', datetime.now()).isoformat(),
+            "confidence": r.get('confidence', 0.8),
+            "signs": list(r.get('behaviors', {}).keys()),
+            "status": r.get('status', 'detected'),
+        })
+    
+    return {"detections": detections}
 
 
 @router.post("/estrus", response_model=EstrusDetectionResponse)
@@ -244,14 +298,14 @@ async def mark_estrus_bred(estrus_id: str):
 
 # === Pregnancy Endpoints ===
 
-@router.get("/pregnancies", response_model=List[PregnancyResponse])
+@router.get("/pregnancies")
 async def get_pregnancies(
     animal_id: Optional[str] = None,
     status: Optional[PregnancyStatus] = None,
     due_within_days: Optional[int] = None,
     limit: int = Query(default=50, le=100)
 ):
-    """Gebelikleri listeler."""
+    """Gebelikleri listeler. Mobil uyumlu response formatı."""
     results = list(pregnancies_db.values())
     
     if animal_id:
@@ -263,7 +317,30 @@ async def get_pregnancies(
         cutoff = date.today() + timedelta(days=due_within_days)
         results = [r for r in results if r['expected_birth_date'] <= cutoff]
     
-    return results[:limit]
+    # Mobil uygulamanın beklediği format
+    pregnancies = []
+    today = date.today()
+    for r in results[:limit]:
+        breeding_date = r.get('breeding_date')
+        if isinstance(breeding_date, str):
+            breeding_date = date.fromisoformat(breeding_date)
+        expected_birth = r.get('expected_birth_date')
+        if isinstance(expected_birth, str):
+            expected_birth = date.fromisoformat(expected_birth)
+        
+        days_pregnant = (today - breeding_date).days if breeding_date else 0
+        
+        pregnancies.append({
+            "id": r.get('id'),
+            "animal_id": r.get('animal_id'),
+            "animal_name": f"Hayvan {r.get('animal_id', '')[-3:]}",  # Demo için
+            "breeding_date": breeding_date.isoformat() if breeding_date else None,
+            "expected_birth": expected_birth.isoformat() if expected_birth else None,
+            "days_pregnant": days_pregnant,
+            "status": r.get('status', 'pregnant'),
+        })
+    
+    return {"pregnancies": pregnancies}
 
 
 @router.post("/pregnancies", response_model=PregnancyResponse)

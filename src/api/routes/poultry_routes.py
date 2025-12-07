@@ -8,7 +8,7 @@ takibi, davranış analizi, yumurta üretimi ve sağlık izleme API'leri.
 """
 
 from datetime import datetime, date
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -281,6 +281,107 @@ class PoultryDashboard(BaseModel):
     zone_occupancy: List[ZoneOccupancy]
     recent_alerts: List[dict]
     last_updated: datetime
+
+
+# ===========================================
+# In-Memory Storage (Demo)
+# ===========================================
+
+_coops_db: Dict[str, Dict] = {}
+_eggs_history: List[Dict] = []
+
+
+# ===========================================
+# Mobile API Compatible Endpoints
+# ===========================================
+
+@router.get("/stats")
+async def get_poultry_stats():
+    """
+    Kanatlı istatistiklerini döndürür.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    return {
+        "total_birds": 150,
+        "total_coops": len(_coops_db) if _coops_db else 3,
+        "today_eggs": 127,
+        "average_production": 42.3,
+        "healthy_percentage": 96.7,
+    }
+
+
+@router.get("/coops")
+async def get_coops():
+    """
+    Kümes listesini döndürür.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    if not _coops_db:
+        # Demo veri
+        demo_coops = [
+            {
+                "id": "coop-001",
+                "name": "A Kümesi",
+                "bird_count": 50,
+                "capacity": 60,
+                "today_eggs": 45,
+                "health_status": "good",
+                "temperature": 22.5,
+                "humidity": 65.0,
+            },
+            {
+                "id": "coop-002",
+                "name": "B Kümesi",
+                "bird_count": 55,
+                "capacity": 60,
+                "today_eggs": 48,
+                "health_status": "good",
+                "temperature": 23.0,
+                "humidity": 62.0,
+            },
+            {
+                "id": "coop-003",
+                "name": "C Kümesi",
+                "bird_count": 45,
+                "capacity": 50,
+                "today_eggs": 34,
+                "health_status": "warning",
+                "temperature": 25.5,
+                "humidity": 70.0,
+            },
+        ]
+        return {"coops": demo_coops}
+    
+    return {"coops": list(_coops_db.values())}
+
+
+@router.get("/eggs/history")
+async def get_eggs_history(
+    days: int = Query(default=7, le=30)
+):
+    """
+    Yumurta üretim geçmişini döndürür.
+    Mobil uygulama için optimize edilmiştir.
+    """
+    from datetime import timedelta
+    
+    if not _eggs_history:
+        # Demo veri - son 7 gün
+        today = date.today()
+        demo_history = []
+        for i in range(days):
+            d = today - timedelta(days=i)
+            base_count = 120 + (i % 3) * 5
+            demo_history.append({
+                "date": d.isoformat(),
+                "count": base_count + (i * 2),
+                "broken": 2 + (i % 2),
+                "quality_a": int(base_count * 0.8),
+                "quality_b": int(base_count * 0.2),
+            })
+        return {"history": demo_history}
+    
+    return {"history": _eggs_history[:days]}
 
 
 # ===========================================
