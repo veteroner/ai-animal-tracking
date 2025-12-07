@@ -13,6 +13,12 @@ import {
   Clock,
   MapPin,
   Loader2,
+  Bird,
+  Egg,
+  Baby,
+  Calendar,
+  Users,
+  Stethoscope,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -399,7 +405,7 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Hızlı İşlemler</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <a
             href="/camera"
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -415,18 +421,137 @@ export default function Dashboard() {
             <span className="text-sm font-medium text-gray-700">Hayvan Ekle</span>
           </a>
           <a
-            href="/health/new"
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+            href="/reproduction"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-pink-50 hover:bg-pink-100 transition-colors"
           >
-            <Heart className="w-8 h-8 text-danger-600" />
-            <span className="text-sm font-medium text-gray-700">Sağlık Kaydı</span>
+            <Heart className="w-8 h-8 text-pink-600" />
+            <span className="text-sm font-medium text-gray-700">Üreme Takibi</span>
           </a>
           <a
-            href="/zones"
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+            href="/reproduction/calendar"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
           >
-            <MapPin className="w-8 h-8 text-warning-600" />
-            <span className="text-sm font-medium text-gray-700">Bölge Haritası</span>
+            <Calendar className="w-8 h-8 text-purple-600" />
+            <span className="text-sm font-medium text-gray-700">Üreme Takvimi</span>
+          </a>
+          <a
+            href="/poultry"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors"
+          >
+            <Bird className="w-8 h-8 text-amber-600" />
+            <span className="text-sm font-medium text-gray-700">Kanatlılar</span>
+          </a>
+          <a
+            href="/poultry/eggs"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-yellow-50 hover:bg-yellow-100 transition-colors"
+          >
+            <Egg className="w-8 h-8 text-yellow-600" />
+            <span className="text-sm font-medium text-gray-700">Yumurta Takibi</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Module Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Üreme Modülü Card */}
+        <div className="card bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-pink-100 rounded-xl">
+              <Heart className="w-6 h-6 text-pink-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Üreme Modülü</h3>
+              <p className="text-sm text-gray-500">Sığır üreme takibi</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <a href="/reproduction/estrus" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Activity className="w-4 h-4 text-pink-500" />
+              <span className="text-sm">Kızgınlık</span>
+            </a>
+            <a href="/reproduction/pregnancy" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Baby className="w-4 h-4 text-purple-500" />
+              <span className="text-sm">Gebelik</span>
+            </a>
+            <a href="/reproduction/calendar" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Calendar className="w-4 h-4 text-indigo-500" />
+              <span className="text-sm">Takvim</span>
+            </a>
+            <a href="/reproduction" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-sm">İstatistik</span>
+            </a>
+          </div>
+          <a href="/reproduction" className="block text-center py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors text-sm font-medium">
+            Modüle Git →
+          </a>
+        </div>
+
+        {/* Kanatlı Modülü Card */}
+        <div className="card bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-amber-100 rounded-xl">
+              <Bird className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Kanatlı Modülü</h3>
+              <p className="text-sm text-gray-500">Kümes hayvanları takibi</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <a href="/poultry/flock" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Users className="w-4 h-4 text-amber-500" />
+              <span className="text-sm">Sürü</span>
+            </a>
+            <a href="/poultry/eggs" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Egg className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm">Yumurta</span>
+            </a>
+            <a href="/poultry/health" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Stethoscope className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Sağlık</span>
+            </a>
+            <a href="/poultry/behavior" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Activity className="w-4 h-4 text-blue-500" />
+              <span className="text-sm">Davranış</span>
+            </a>
+          </div>
+          <a href="/poultry" className="block text-center py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium">
+            Modüle Git →
+          </a>
+        </div>
+
+        {/* Genel Bakış Card */}
+        <div className="card bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <MapPin className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Çiftlik Yönetimi</h3>
+              <p className="text-sm text-gray-500">Genel operasyonlar</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <a href="/zones" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <MapPin className="w-4 h-4 text-blue-500" />
+              <span className="text-sm">Bölgeler</span>
+            </a>
+            <a href="/health" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <Heart className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Sağlık</span>
+            </a>
+            <a href="/alerts" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <AlertTriangle className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm">Uyarılar</span>
+            </a>
+            <a href="/reports" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-sm">Raporlar</span>
+            </a>
+          </div>
+          <a href="/animals" className="block text-center py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
+            Hayvanları Gör →
           </a>
         </div>
       </div>

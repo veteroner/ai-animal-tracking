@@ -18,6 +18,12 @@ import {
   X,
   FileText,
   User,
+  Heart,
+  Calendar,
+  Baby,
+  Stethoscope,
+  Users,
+  LayoutGrid,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,8 +40,19 @@ const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Canlı Kamera', href: '/camera', icon: Camera },
   { name: 'Hayvanlar', href: '/animals', icon: Dog, modes: ['cattle'] },
+  // Üreme Modülü
+  { name: 'Üreme Takibi', href: '/reproduction', icon: Heart, modes: ['cattle'] },
+  { name: 'Kızgınlık Tespiti', href: '/reproduction/estrus', icon: Activity, modes: ['cattle'] },
+  { name: 'Gebelik Takibi', href: '/reproduction/pregnancy', icon: Baby, modes: ['cattle'] },
+  { name: 'Üreme Takvimi', href: '/reproduction/calendar', icon: Calendar, modes: ['cattle'] },
+  // Kanatlı Modülü
   { name: 'Kanatlılar', href: '/poultry', icon: Bird, modes: ['poultry'] },
-  { name: 'Yumurta Takibi', href: '/eggs', icon: Egg, modes: ['poultry'] },
+  { name: 'Sürü Yönetimi', href: '/poultry/flock', icon: Users, modes: ['poultry'] },
+  { name: 'Yumurta Üretimi', href: '/poultry/eggs', icon: Egg, modes: ['poultry'] },
+  { name: 'Kümes Sağlık', href: '/poultry/health', icon: Stethoscope, modes: ['poultry'] },
+  { name: 'Davranış Analizi', href: '/poultry/behavior', icon: Activity, modes: ['poultry'] },
+  { name: 'Bölge Yönetimi', href: '/poultry/zones', icon: LayoutGrid, modes: ['poultry'] },
+  // Ortak Modüller
   { name: 'Sağlık Kayıtları', href: '/health', icon: Activity },
   { name: 'Bölge Haritası', href: '/zones', icon: MapPin },
   { name: 'Su Kaynakları', href: '/water', icon: Droplets },
