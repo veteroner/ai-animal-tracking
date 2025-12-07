@@ -82,8 +82,8 @@ export default function PregnanciesPage() {
     };
     
     const labels: Record<string, string> = {
-      aktif: '🤰 Aktif Gebelik',
-      doğum_yaptı: '🐣 Doğum Yaptı',
+      aktif: '🐄 Aktif Gebelik',
+      doğum_yaptı: '🐮 Doğum Yaptı',
       düşük: '❌ Düşük',
       iptal: '⭕ İptal',
     };
@@ -120,7 +120,7 @@ export default function PregnanciesPage() {
               ← Üreme
             </Link>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">🤰 Gebelik Takibi</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mt-2">🐄 Gebelik Takibi</h1>
           <p className="text-gray-600">Aktif gebelikler ve doğum tahminleri</p>
         </div>
         <button
@@ -188,7 +188,7 @@ export default function PregnanciesPage() {
       {/* Pregnancies List */}
       {filteredPregnancies.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl shadow">
-          <span className="text-6xl">🤰</span>
+          <span className="text-6xl">🐄</span>
           <h3 className="mt-4 text-xl font-semibold text-gray-700">Gebelik kaydı bulunamadı</h3>
           <p className="text-gray-500 mt-2">Henüz bu kategoride kayıt yok</p>
         </div>

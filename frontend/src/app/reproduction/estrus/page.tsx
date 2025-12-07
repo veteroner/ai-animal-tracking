@@ -60,7 +60,7 @@ export default function EstrusPage() {
     const labels: Record<string, string> = {
       detected: '🔍 Tespit Edildi',
       confirmed: '✅ Onaylandı',
-      bred: '💑 Tohumlandı',
+      bred: '🐂 Tohumlandı',
       missed: '❌ Kaçırıldı',
       false_positive: '⚠️ Yanlış Pozitif',
     };
@@ -197,7 +197,7 @@ export default function EstrusPage() {
                       onClick={() => handleMarkBred(estrus.id)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      💑 Tohumlandı
+                      🐂 Tohumlandı
                     </button>
                   )}
                 </div>

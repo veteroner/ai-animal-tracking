@@ -118,7 +118,7 @@ export default function BreedingPage() {
               ← Üreme
             </Link>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">💑 Çiftleştirme Kayıtları</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mt-2">🐂 Çiftleştirme Kayıtları</h1>
           <p className="text-gray-600">Tohumlama ve çiftleştirme takibi</p>
         </div>
         <button
@@ -182,7 +182,7 @@ export default function BreedingPage() {
       {/* Breedings List */}
       {filteredBreedings.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl shadow">
-          <span className="text-6xl">💑</span>
+          <span className="text-6xl">🐂</span>
           <h3 className="mt-4 text-xl font-semibold text-gray-700">Çiftleştirme kaydı bulunamadı</h3>
           <p className="text-gray-500 mt-2">Henüz bu kategoride kayıt yok</p>
         </div>
@@ -194,7 +194,7 @@ export default function BreedingPage() {
                 {/* Animal Info */}
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <span className="text-3xl">💑</span>
+                    <span className="text-3xl">🐂</span>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">Dişi: {breeding.female_id}</h3>

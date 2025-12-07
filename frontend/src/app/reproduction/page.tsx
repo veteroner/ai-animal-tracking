@@ -95,7 +95,7 @@ export default function ReproductionPage() {
               <p className="text-purple-100">Aktif Gebelik</p>
               <p className="text-3xl font-bold">{stats.activePregnancies}</p>
             </div>
-            <span className="text-4xl">🤰</span>
+            <span className="text-4xl">🐄✨</span>
           </div>
         </Link>
 
@@ -105,7 +105,7 @@ export default function ReproductionPage() {
               <p className="text-orange-100">Yakında Doğum</p>
               <p className="text-3xl font-bold">{stats.dueSoon}</p>
             </div>
-            <span className="text-4xl">⏰</span>
+            <span className="text-4xl">🐮🍼</span>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export default function ReproductionPage() {
               <p className="text-green-100">Toplam Doğum</p>
               <p className="text-3xl font-bold">{stats.totalBirths}</p>
             </div>
-            <span className="text-4xl">🐣</span>
+            <span className="text-4xl">🐮🐄</span>
           </div>
         </Link>
 
@@ -125,7 +125,7 @@ export default function ReproductionPage() {
               <p className="text-blue-100">Bekleyen Sonuç</p>
               <p className="text-3xl font-bold">{stats.pendingBreedings}</p>
             </div>
-            <span className="text-4xl">💑</span>
+            <span className="text-4xl">🐂🐄</span>
           </div>
         </Link>
       </div>
@@ -140,7 +140,7 @@ export default function ReproductionPage() {
           </div>
         </Link>
         <Link href="/reproduction/pregnancies" className="bg-white rounded-xl p-4 shadow hover:shadow-md transition-shadow flex items-center space-x-3">
-          <span className="text-2xl">🤰</span>
+          <span className="text-2xl">🐄</span>
           <div>
             <p className="font-semibold">Gebelik Takibi</p>
             <p className="text-sm text-gray-500">Aktif gebelikler</p>
@@ -154,7 +154,7 @@ export default function ReproductionPage() {
           </div>
         </Link>
         <Link href="/reproduction/breeding" className="bg-white rounded-xl p-4 shadow hover:shadow-md transition-shadow flex items-center space-x-3">
-          <span className="text-2xl">💑</span>
+          <span className="text-2xl">🐂</span>
           <div>
             <p className="font-semibold">Çiftleştirme</p>
             <p className="text-sm text-gray-500">Kayıtlar ve performans</p>
