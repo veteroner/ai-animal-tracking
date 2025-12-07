@@ -350,7 +350,7 @@ export default function FarmMonitorPage() {
                     <Input
                       placeholder="Örn: Ahır Kamerası 1"
                       value={newCameraName}
-                      onChange={(e) => setNewCameraName(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCameraName(e.target.value)}
                     />
                   </div>
                   <div>
@@ -358,7 +358,7 @@ export default function FarmMonitorPage() {
                     <Input
                       placeholder="rtsp://kullanici:sifre@192.168.1.100:554/stream"
                       value={newCameraUrl}
-                      onChange={(e) => setNewCameraUrl(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCameraUrl(e.target.value)}
                     />
                   </div>
                   <div className="flex gap-2">
