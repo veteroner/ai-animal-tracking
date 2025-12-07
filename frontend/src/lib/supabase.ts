@@ -204,6 +204,38 @@ export interface Coop {
   updated_at: string;
 }
 
+// Type aliases for compatibility
+export type PoultryCoop = Coop;
+
+export interface PoultryBird {
+  id: string;
+  bird_id: string;
+  coop_id: string;
+  breed: string;
+  gender: 'male' | 'female';
+  birth_date: string;
+  weight_kg?: number;
+  is_active: boolean;
+  health_status?: string;
+  egg_production_rate?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PoultryEggProduction {
+  id: string;
+  coop_id: string;
+  date: string;
+  total_eggs: number;
+  good_eggs: number;
+  cracked_eggs: number;
+  dirty_eggs: number;
+  double_yolk: number;
+  collected_by?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface CoopZone {
   id: string;
   coop_id: string;
