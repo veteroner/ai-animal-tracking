@@ -469,7 +469,7 @@ export default function Dashboard() {
               <Activity className="w-4 h-4 text-pink-500" />
               <span className="text-sm">Kızgınlık</span>
             </a>
-            <a href="/reproduction/pregnancy" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
+            <a href="/reproduction/pregnancies" className="flex items-center gap-2 p-2 bg-white/60 rounded-lg hover:bg-white transition-colors">
               <Baby className="w-4 h-4 text-purple-500" />
               <span className="text-sm">Gebelik</span>
             </a>

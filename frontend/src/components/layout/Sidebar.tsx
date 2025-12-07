@@ -43,7 +43,7 @@ const navigation: NavItem[] = [
   // Üreme Modülü
   { name: 'Üreme Takibi', href: '/reproduction', icon: Heart, modes: ['cattle'] },
   { name: 'Kızgınlık Tespiti', href: '/reproduction/estrus', icon: Activity, modes: ['cattle'] },
-  { name: 'Gebelik Takibi', href: '/reproduction/pregnancy', icon: Baby, modes: ['cattle'] },
+  { name: 'Gebelik Takibi', href: '/reproduction/pregnancies', icon: Baby, modes: ['cattle'] },
   { name: 'Üreme Takvimi', href: '/reproduction/calendar', icon: Calendar, modes: ['cattle'] },
   // Kanatlı Modülü
   { name: 'Kanatlılar', href: '/poultry', icon: Bird, modes: ['poultry'] },
