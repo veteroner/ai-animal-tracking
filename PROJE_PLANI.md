@@ -784,6 +784,102 @@ ai_goruntu_isleme/
 
 ---
 
+### 📌 FAZ 18: Kanatlı Hayvan (Kümes) Modülü (Hafta 31-35)
+
+#### 18.1 Kanatlı Tespit ve Takip
+- [ ] Tavuk, horoz, civciv tespiti
+- [ ] Hindi, kaz, ördek tespiti
+- [ ] Bıldırcın, beç tavuğu, sülün tespiti
+- [ ] Benzersiz kanatlı kimlik ataması
+- [ ] Sürü takibi ve sayım
+
+#### 18.2 Kanatlı Davranış Analizi
+- [ ] Yem yeme davranışı tespiti
+- [ ] Su içme davranışı tespiti
+- [ ] Tüneme (roosting) tespiti
+- [ ] Yumurtlama (nesting) davranışı
+- [ ] Toz banyosu davranışı
+- [ ] Tüy temizleme (preening)
+- [ ] Yiyecek arama (foraging)
+- [ ] Sürü hareketi (flocking)
+- [ ] Gagalama sıralaması (pecking order)
+
+#### 18.3 Stres ve Anormal Davranış Tespiti
+- [ ] Tüy gagalama (feather pecking) - stres
+- [ ] Yamyamlık (cannibalism) tespiti
+- [ ] Üst üste yığılma (piling) tespiti
+- [ ] Panik davranışı tespiti
+- [ ] Durgunluk (lethargy) tespiti
+- [ ] Sürüden izolasyon tespiti
+
+#### 18.4 Kanatlı Sağlık İzleme
+- [ ] Solunum hastalığı belirtileri
+- [ ] Sindirim sorunları tespiti
+- [ ] Nörolojik belirtiler
+- [ ] Deri ve tüy sorunları
+- [ ] Tüy dökümü (molting) takibi
+- [ ] Kuluçka (broody) tespiti
+- [ ] Sağlık skoru hesaplama
+
+#### 18.5 Yumurta Üretim Takibi
+- [ ] Yumurtlama kutusu izleme
+- [ ] Yumurta sayımı ve kaydı
+- [ ] Günlük/haftalık üretim istatistikleri
+- [ ] Yumurta kalite sınıflandırması
+  - [ ] Normal yumurta
+  - [ ] Yumuşak kabuklu
+  - [ ] Çift sarılı
+  - [ ] Kan lekeli
+- [ ] Üretim performans analizi
+- [ ] Yumurtlama oranı hesaplama
+
+#### 18.6 Kümes Bölge Yönetimi
+- [ ] Yemlik bölgesi tanımlama
+- [ ] Suluk bölgesi tanımlama
+- [ ] Tünek alanı tanımlama
+- [ ] Yumurtlama kutuları
+- [ ] Toz banyosu alanı
+- [ ] Serbest dolaşım alanı
+- [ ] Civciv bölümü
+- [ ] Karantina alanı
+- [ ] Bölge doluluk takibi
+
+#### 18.7 Kanatlı Uyarı Sistemi
+- [ ] 🔴 Panik/yığılma tespiti (Kritik - SMS)
+- [ ] 🔴 Yamyamlık şüphesi (Kritik - SMS)
+- [ ] 🟠 Sağlık sorunu tespiti (Yüksek)
+- [ ] 🟡 Stres davranışı (Orta)
+- [ ] 🟡 Düşük yumurta üretimi (Orta)
+- [ ] 🟢 Tüy dökümü başladı (Normal)
+- [ ] 🔵 Kuluçka davranışı (Bilgi)
+
+#### 18.8 Veritabanı Şeması
+- [ ] poultry tablosu (kanatlı kayıtları)
+- [ ] poultry_detections tablosu
+- [ ] egg_production tablosu
+- [ ] coop_zones tablosu
+- [ ] poultry_health_records tablosu
+- [ ] poultry_behavior_logs tablosu
+
+#### 18.9 API Endpoints
+- [ ] `/api/poultry` - Kanatlı yönetimi
+- [ ] `/api/poultry/detections` - Tespit verileri
+- [ ] `/api/poultry/behaviors` - Davranış analizi
+- [ ] `/api/poultry/health` - Sağlık izleme
+- [ ] `/api/poultry/eggs` - Yumurta üretimi
+- [ ] `/api/poultry/zones` - Bölge yönetimi
+- [ ] `/api/poultry/analytics` - Analitik raporlar
+
+#### 18.10 Frontend Sayfaları
+- [ ] `/poultry` - Kanatlı ana dashboard
+- [ ] `/poultry/flock` - Sürü yönetimi
+- [ ] `/poultry/eggs` - Yumurta takibi
+- [ ] `/poultry/health` - Sağlık izleme
+- [ ] `/poultry/behavior` - Davranış analizi
+- [ ] `/poultry/zones` - Kümes bölgeleri
+
+---
+
 ## 🔧 Teknik Gereksinimler
 
 ### Donanım Gereksinimleri (Minimum - Test için)
@@ -869,8 +965,9 @@ Node.js: ">=18.0" (frontend için)
 | Faz 15: Test/Optimizasyon | 2 hafta | 25.5 hafta |
 | Faz 16: Deployment | 1.5 hafta | 27 hafta |
 | Faz 17: Üreme Modülü | 4 hafta | 31 hafta |
+| Faz 18: Kanatlı Modülü | 4 hafta | 35 hafta |
 
-**Toplam: ~7-8 ay** (part-time geliştirme için daha uzun sürebilir)
+**Toplam: ~8-9 ay** (part-time geliştirme için daha uzun sürebilir)
 
 ---
 
