@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   MapPin,
@@ -14,6 +14,8 @@ import {
   Wheat,
   Shield,
   Loader2,
+  Navigation,
+  RefreshCw,
 } from 'lucide-react';
 import { api, isSupabaseConfigured, Zone as SupabaseZone } from '@/lib/supabase';
 
@@ -67,10 +69,35 @@ const statusConfig = {
   danger: { label: 'Tehlike', color: 'text-danger-600', bg: 'bg-danger-100' },
 };
 
+// Kullanıcı konumuna göre demo bölgeler oluştur
+const createDemoZonesAroundLocation = (lat: number, lng: number): Zone[] => {
+  return [
+    { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 45, capacity: 60, status: 'normal', description: 'Günlük otlatma alanı', coordinates: [lat + 0.001, lng + 0.001], radius: 80 },
+    { id: 2, name: 'Ahır 1', zone_type: 'shelter', animal_count: 32, capacity: 40, status: 'normal', description: 'Ana barınak', coordinates: [lat - 0.0008, lng - 0.001], radius: 40 },
+    { id: 3, name: 'Ahır 2', zone_type: 'shelter', animal_count: 28, capacity: 30, status: 'warning', description: 'Yavru barınağı', coordinates: [lat - 0.0005, lng + 0.0015], radius: 35 },
+    { id: 4, name: 'Su Kaynağı', zone_type: 'water', animal_count: 12, capacity: 20, status: 'normal', description: 'Ana su deposu', coordinates: [lat + 0.0012, lng - 0.0008], radius: 25 },
+    { id: 5, name: 'Yem Deposu', zone_type: 'feeding', animal_count: 8, capacity: 15, status: 'normal', description: 'Yem dağıtım noktası', coordinates: [lat - 0.001, lng + 0.0005], radius: 30 },
+    { id: 6, name: 'Tehlikeli Bölge', zone_type: 'restricted', animal_count: 3, capacity: 0, status: 'danger', description: 'Yasak bölge - inşaat alanı', coordinates: [lat + 0.0015, lng + 0.002], radius: 60 },
+  ];
+};
+
 export default function ZonesPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'loading' | 'found' | 'error' | 'denied'>('loading');
+
+  // Kullanıcı konumu bulunduğunda
+  const handleUserLocationFound = useCallback((lat: number, lng: number) => {
+    setUserLocation([lat, lng]);
+    setLocationStatus('found');
+    
+    // Supabase yoksa kullanıcı konumuna göre demo bölgeler oluştur
+    if (!isSupabaseConfigured()) {
+      setZones(createDemoZonesAroundLocation(lat, lng));
+    }
+  }, []);
 
   useEffect(() => {
     const loadZones = async () => {
@@ -79,7 +106,8 @@ export default function ZonesPage() {
         setError(null);
 
         if (!isSupabaseConfigured()) {
-          // Demo data when Supabase is not configured
+          // Konum alınana kadar varsayılan bölgeler göster
+          // Konum alındığında handleUserLocationFound ile güncellenecek
           setZones([
             { id: 1, name: 'Ana Otlak', zone_type: 'grazing', animal_count: 45, capacity: 60, status: 'normal', description: 'Günlük otlatma alanı', coordinates: [39.9350, 32.8610], radius: 80 },
             { id: 2, name: 'Ahır 1', zone_type: 'shelter', animal_count: 32, capacity: 40, status: 'normal', description: 'Ana barınak', coordinates: [39.9320, 32.8580], radius: 40 },
@@ -178,13 +206,41 @@ export default function ZonesPage() {
 
       {/* Map */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Bölge Haritası</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Bölge Haritası</h2>
+          <div className="flex items-center gap-2">
+            {locationStatus === 'loading' && (
+              <span className="text-sm text-gray-500 flex items-center gap-1">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Konum alınıyor...
+              </span>
+            )}
+            {locationStatus === 'found' && userLocation && (
+              <span className="text-sm text-green-600 flex items-center gap-1">
+                <Navigation className="w-4 h-4" />
+                Konumunuz bulundu
+              </span>
+            )}
+            {locationStatus === 'error' && (
+              <span className="text-sm text-yellow-600 flex items-center gap-1">
+                <AlertTriangle className="w-4 h-4" />
+                Konum alınamadı
+              </span>
+            )}
+          </div>
+        </div>
         <ZoneMap 
           zones={zones} 
-          center={[39.9334, 32.8597]} 
-          zoom={16} 
+          center={userLocation || [39.9334, 32.8597]} 
+          zoom={userLocation ? 17 : 16}
+          showUserLocation={true}
+          onUserLocationFound={handleUserLocationFound}
         />
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200" />
+            <span className="text-gray-600">Konumunuz</span>
+          </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500" />
             <span className="text-gray-600">Otlak</span>
