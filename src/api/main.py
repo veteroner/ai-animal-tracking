@@ -36,6 +36,9 @@ from src.api.routes.streaming import router as streaming_router
 from src.api.routes.reproduction_routes import router as reproduction_router
 from src.api.routes.poultry_routes import router as poultry_router
 from src.api.routes.farm_monitor_routes import router as farm_monitor_router
+from src.api.routes.zones_routes import router as zones_router
+from src.api.routes.notifications_routes import router as notifications_router
+from src.api.routes.reports_routes import router as reports_router
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +236,9 @@ async def api_info() -> Dict[str, Any]:
             "reproduction": f"{API_PREFIX}/reproduction",
             "poultry": f"{API_PREFIX}/poultry",
             "farm_monitor": f"{API_PREFIX}/farm-monitor",
+            "zones": f"{API_PREFIX}/zones",
+            "notifications": f"{API_PREFIX}/notifications",
+            "reports": f"{API_PREFIX}/reports",
         }
     }
 
@@ -254,6 +260,9 @@ app.include_router(export_router, prefix=API_PREFIX)
 app.include_router(reproduction_router, prefix=API_PREFIX)
 app.include_router(poultry_router, prefix=API_PREFIX)
 app.include_router(farm_monitor_router, prefix=API_PREFIX)
+app.include_router(zones_router, prefix=API_PREFIX)
+app.include_router(notifications_router, prefix=API_PREFIX)
+app.include_router(reports_router, prefix=API_PREFIX)
 
 
 # ===========================================

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
@@ -11,6 +11,11 @@ import AlertsScreen from '../screens/AlertsScreen';
 import FarmMonitorScreen from '../screens/FarmMonitorScreen';
 import ReproductionScreen from '../screens/ReproductionScreen';
 import PoultryScreen from '../screens/PoultryScreen';
+import HealthScreen from '../screens/HealthScreen';
+import ReportsScreen from '../screens/ReportsScreen';
+import ZonesScreen from '../screens/ZonesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,11 +24,10 @@ const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
   const icons: Record<string, string> = {
     'Ana Sayfa': '🏠',
     'İzleme': '📡',
-    'Kamera': '📷',
-    'Hayvanlar': '🐄',
-    'Uyarılar': '🔔',
+    'Sağlık': '🏥',
     'Üreme': '💕',
     'Kanatlı': '🐔',
+    'Daha Fazla': '📋',
   };
 
   return (
@@ -34,6 +38,39 @@ const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
     </View>
   );
 };
+
+// Daha Fazla Ekranı - Diğer modüllere erişim
+function MoreScreen({ navigation }: any) {
+  const menuItems = [
+    { name: 'Hayvanlar', icon: '🐄', screen: 'Hayvanlar', description: 'Hayvan galerisi ve detayları' },
+    { name: 'Kamera', icon: '📷', screen: 'Kamera', description: 'Canlı kamera izleme' },
+    { name: 'Bölgeler', icon: '🗺️', screen: 'Bölgeler', description: 'Bölge haritası ve yönetimi' },
+    { name: 'Raporlar', icon: '📊', screen: 'Raporlar', description: 'İstatistikler ve raporlar' },
+    { name: 'Uyarılar', icon: '⚠️', screen: 'Uyarılar', description: 'Sistem uyarıları' },
+    { name: 'Bildirimler', icon: '🔔', screen: 'Bildirimler', description: 'Tüm bildirimler' },
+    { name: 'Ayarlar', icon: '⚙️', screen: 'Ayarlar', description: 'Uygulama ayarları' },
+  ];
+
+  return (
+    <ScrollView style={styles.moreContainer}>
+      <Text style={styles.moreTitle}>Tüm Modüller</Text>
+      <View style={styles.menuGrid}>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(item.screen)}
+          >
+            <Text style={styles.menuIcon}>{item.icon}</Text>
+            <Text style={styles.menuName}>{item.name}</Text>
+            <Text style={styles.menuDescription}>{item.description}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
 
 export default function AppNavigator() {
   return (
@@ -55,7 +92,7 @@ export default function AppNavigator() {
         <Tab.Screen 
           name="Ana Sayfa" 
           component={HomeScreen}
-          options={{ title: 'AI Hayvan Takip' }}
+          options={{ title: 'Ana Sayfa' }}
         />
         <Tab.Screen 
           name="İzleme" 
@@ -63,14 +100,9 @@ export default function AppNavigator() {
           options={{ title: 'Çiftlik İzleme' }}
         />
         <Tab.Screen 
-          name="Kamera" 
-          component={CameraScreen}
-          options={{ title: 'Canlı Tespit' }}
-        />
-        <Tab.Screen 
-          name="Hayvanlar" 
-          component={GalleryScreen}
-          options={{ title: 'Kayıtlı Hayvanlar' }}
+          name="Sağlık" 
+          component={HealthScreen}
+          options={{ title: 'Sağlık Takibi' }}
         />
         <Tab.Screen 
           name="Üreme" 
@@ -83,9 +115,66 @@ export default function AppNavigator() {
           options={{ title: 'Kanatlı Modülü' }}
         />
         <Tab.Screen 
+          name="Daha Fazla" 
+          component={MoreScreen}
+          options={{ title: 'Daha Fazla' }}
+        />
+        {/* Hidden screens accessible from More */}
+        <Tab.Screen 
+          name="Hayvanlar" 
+          component={GalleryScreen}
+          options={{ 
+            title: 'Hayvan Galerisi',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
+          name="Kamera" 
+          component={CameraScreen}
+          options={{ 
+            title: 'Canlı Kamera',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
+          name="Bölgeler" 
+          component={ZonesScreen}
+          options={{ 
+            title: 'Bölge Haritası',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
+          name="Raporlar" 
+          component={ReportsScreen}
+          options={{ 
+            title: 'Raporlar',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
           name="Uyarılar" 
           component={AlertsScreen}
-          options={{ title: 'Uyarılar' }}
+          options={{ 
+            title: 'Uyarılar',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
+          name="Bildirimler" 
+          component={NotificationsScreen}
+          options={{ 
+            title: 'Bildirimler',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen 
+          name="Ayarlar" 
+          component={SettingsScreen}
+          options={{ 
+            title: 'Ayarlar',
+            tabBarButton: () => null,
+          }}
         />
       </Tab.Navigator>
     </NavigationContainer>
@@ -122,5 +211,45 @@ const styles = StyleSheet.create({
   },
   iconFocused: {
     transform: [{ scale: 1.1 }],
+  },
+  // More Screen Styles
+  moreContainer: {
+    flex: 1,
+    backgroundColor: '#111827',
+    padding: 16,
+  },
+  moreTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 20,
+  },
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  menuItem: {
+    width: '48%',
+    backgroundColor: '#1f2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  menuIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  menuName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  menuDescription: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
 });

@@ -2,7 +2,7 @@
 Sağlık API Routes
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -11,6 +11,92 @@ from ..schemas.animal_schemas import AnimalHealth
 
 
 router = APIRouter(prefix="/health", tags=["Sağlık"])
+
+
+# ===================== MOBİL UYUMLU ENDPOINT'LER =====================
+
+@router.get("/stats")
+async def get_health_stats() -> Dict:
+    """Sağlık istatistikleri - Mobil uyumlu"""
+    return {
+        "total_records": 48,
+        "healthy_count": 35,
+        "warning_count": 8,
+        "sick_count": 5,
+        "recent_checkups": 12
+    }
+
+
+@router.get("/records")
+async def get_health_records() -> List[Dict]:
+    """Sağlık kayıtları listesi - Mobil uyumlu"""
+    return [
+        {
+            "id": 1,
+            "animal_id": 1,
+            "animal_tag": "TR-001",
+            "animal_name": "Sarıkız",
+            "check_date": "2024-12-02",
+            "health_status": "healthy",
+            "temperature": 38.5,
+            "weight": 452,
+            "notes": "Rutin kontrol, sağlık durumu iyi",
+            "vet_name": "Dr. Ahmet Yılmaz"
+        },
+        {
+            "id": 2,
+            "animal_id": 2,
+            "animal_tag": "TR-002",
+            "animal_name": "Karabaş",
+            "check_date": "2024-12-01",
+            "health_status": "warning",
+            "temperature": 39.8,
+            "weight": 518,
+            "symptoms": "Hafif öksürük",
+            "diagnosis": "Üst solunum yolu enfeksiyonu şüphesi",
+            "treatment": "Antibiyotik tedavisi başlandı",
+            "vet_name": "Dr. Ahmet Yılmaz"
+        },
+        {
+            "id": 3,
+            "animal_id": 5,
+            "animal_tag": "TR-005",
+            "check_date": "2024-11-30",
+            "health_status": "sick",
+            "temperature": 40.2,
+            "weight": 68,
+            "symptoms": "İştahsızlık, halsizlik",
+            "diagnosis": "Parazit enfeksiyonu",
+            "treatment": "Antiparaziter ilaç verildi",
+            "vet_name": "Dr. Fatma Demir"
+        },
+        {
+            "id": 4,
+            "animal_id": 3,
+            "animal_tag": "TR-003",
+            "animal_name": "Benekli",
+            "check_date": "2024-11-28",
+            "health_status": "healthy",
+            "temperature": 38.3,
+            "weight": 382,
+            "notes": "Aşı yapıldı",
+            "vet_name": "Dr. Fatma Demir"
+        },
+        {
+            "id": 5,
+            "animal_id": 4,
+            "animal_tag": "TR-004",
+            "check_date": "2024-11-25",
+            "health_status": "healthy",
+            "temperature": 39.0,
+            "weight": 66,
+            "notes": "Genel sağlık kontrolü",
+            "vet_name": "Dr. Ahmet Yılmaz"
+        }
+    ]
+
+
+# ===================== MEVCUT ENDPOINT'LER =====================
 
 
 @router.get("/overview")
