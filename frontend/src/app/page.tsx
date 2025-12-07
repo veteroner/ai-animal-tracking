@@ -19,6 +19,7 @@ import {
   Calendar,
   Users,
   Stethoscope,
+  Wifi,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -448,11 +449,52 @@ export default function Dashboard() {
             <Egg className="w-8 h-8 text-yellow-600" />
             <span className="text-sm font-medium text-gray-700">Yumurta Takibi</span>
           </a>
+          <a
+            href="/farm-monitor"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
+          >
+            <Wifi className="w-8 h-8 text-blue-600" />
+            <span className="text-sm font-medium text-gray-700">Çiftlik İzleme</span>
+          </a>
         </div>
       </div>
 
       {/* Module Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Çiftlik İzleme Card */}
+        <div className="card bg-gradient-to-br from-cyan-50 to-blue-50 border-cyan-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-cyan-100 rounded-xl">
+              <Wifi className="w-6 h-6 text-cyan-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Çiftlik İzleme</h3>
+              <p className="text-sm text-gray-500">7/24 AI kamera izleme</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex items-center gap-2 p-2 bg-white/60 rounded-lg">
+              <Camera className="w-4 h-4 text-cyan-500" />
+              <span className="text-sm">IP Kamera</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-white/60 rounded-lg">
+              <Activity className="w-4 h-4 text-purple-500" />
+              <span className="text-sm">Davranış AI</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-white/60 rounded-lg">
+              <Heart className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Sağlık AI</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-white/60 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm">Otomatik Uyarı</span>
+            </div>
+          </div>
+          <a href="/farm-monitor" className="block text-center py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm font-medium">
+            İzlemeyi Başlat →
+          </a>
+        </div>
+
         {/* Üreme Modülü Card */}
         <div className="card bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200">
           <div className="flex items-center gap-3 mb-4">

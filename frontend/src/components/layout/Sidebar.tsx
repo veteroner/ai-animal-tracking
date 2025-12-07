@@ -24,6 +24,7 @@ import {
   Stethoscope,
   Users,
   LayoutGrid,
+  Wifi,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,6 +40,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Canlı Kamera', href: '/camera', icon: Camera },
+  { name: 'Çiftlik İzleme', href: '/farm-monitor', icon: Wifi },
   { name: 'Hayvanlar', href: '/animals', icon: Dog, modes: ['cattle'] },
   // Üreme Modülü
   { name: 'Üreme Takibi', href: '/reproduction', icon: Heart, modes: ['cattle'] },
