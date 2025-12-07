@@ -23,7 +23,7 @@ import {
   Trash2,
   Home,
 } from 'lucide-react';
-import { api, isSupabaseConfigured, PoultryBird, PoultryCoop } from '@/lib/supabase';
+import { api, isSupabaseConfigured, PoultryBird, PoultryCoop, PoultryRecord } from '@/lib/supabase';
 
 const breedInfo: Record<string, { label: string; eggColor: string }> = {
   'rhode_island_red': { label: 'Rhode Island Red', eggColor: 'Kahverengi' },
@@ -90,12 +90,27 @@ export default function PoultryFlockPage() {
       }
 
       const [coopsData, birdsData] = await Promise.all([
-        api.poultry.coops.getAll(),
-        api.poultry.birds.getAll(),
+        api.coops.getAll(),
+        api.poultryRecords.getAll(),
       ]);
       
+      // Map PoultryRecord to PoultryBird format
+      const mappedBirds: PoultryBird[] = birdsData.map(record => ({
+        id: record.id,
+        bird_id: record.tag_id || record.id,
+        coop_id: record.coop_id || '',
+        breed: record.breed || '',
+        gender: record.gender === 'unknown' ? 'female' : record.gender,
+        birth_date: record.birth_date || '',
+        weight_kg: record.weight_grams ? record.weight_grams / 1000 : undefined,
+        is_active: record.is_active,
+        health_status: record.health_status,
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+      }));
+      
       setCoops(coopsData);
-      setBirds(birdsData);
+      setBirds(mappedBirds);
     } catch (error) {
       console.error('Error loading flock data:', error);
     } finally {
