@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Platform,
   Dimensions,
   Alert,
+  Linking,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { API_BASE_URL } from '../config/api';
 
 interface Zone {
@@ -137,50 +136,6 @@ export default function ZonesScreen() {
     return statusConfig[status] || statusConfig.normal;
   };
 
-  const generateMapHtml = () => {
-    const center = zones.length > 0 ? zones[0].coordinates : [39.9334, 32.8597];
-    
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <style>
-          body { margin: 0; padding: 0; }
-          #map { width: 100%; height: 100vh; }
-        </style>
-      </head>
-      <body>
-        <div id="map"></div>
-        <script>
-          var map = L.map('map').setView([${center[0]}, ${center[1]}], 16);
-          
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-          }).addTo(map);
-
-          var zones = ${JSON.stringify(zones)};
-          
-          zones.forEach(function(zone) {
-            var color = zone.status === 'danger' ? '#ef4444' : 
-                       zone.status === 'warning' ? '#eab308' : '#22c55e';
-            
-            L.circle([zone.coordinates[0], zone.coordinates[1]], {
-              color: color,
-              fillColor: color,
-              fillOpacity: 0.3,
-              radius: zone.radius || 50
-            }).addTo(map)
-            .bindPopup('<b>' + zone.name + '</b><br>' + zone.description);
-          });
-        </script>
-      </body>
-      </html>
-    `;
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -238,13 +193,38 @@ export default function ZonesScreen() {
       </View>
 
       {activeTab === 'map' ? (
-        <View style={styles.mapContainer}>
-          <WebView
-            source={{ html: generateMapHtml() }}
-            style={styles.map}
-            scrollEnabled={false}
-            javaScriptEnabled={true}
-          />
+        <View style={styles.mapPlaceholder}>
+          <Text style={styles.mapPlaceholderIcon}>🗺️</Text>
+          <Text style={styles.mapPlaceholderTitle}>Harita Görünümü</Text>
+          <Text style={styles.mapPlaceholderText}>
+            Harita görünümü için web uygulamasını kullanın veya aşağıdaki butona tıklayarak Google Maps'te açın.
+          </Text>
+          <TouchableOpacity
+            style={styles.mapButton}
+            onPress={() => {
+              const lat = zones[0]?.coordinates[0] || 39.9334;
+              const lng = zones[0]?.coordinates[1] || 32.8597;
+              Linking.openURL(`https://www.google.com/maps/@${lat},${lng},17z`);
+            }}
+          >
+            <Text style={styles.mapButtonText}>📍 Google Maps'te Aç</Text>
+          </TouchableOpacity>
+          
+          {/* Mini Bölge Özeti */}
+          <View style={styles.miniZoneList}>
+            {zones.map(zone => (
+              <View key={zone.id} style={styles.miniZoneItem}>
+                <Text style={styles.miniZoneIcon}>
+                  {getZoneTypeConfig(zone.zone_type).icon}
+                </Text>
+                <Text style={styles.miniZoneName}>{zone.name}</Text>
+                <View style={[
+                  styles.miniZoneStatus, 
+                  { backgroundColor: getStatusConfig(zone.status).color }
+                ]} />
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <ScrollView
@@ -502,5 +482,71 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Map placeholder styles
+  mapPlaceholder: {
+    flex: 1,
+    backgroundColor: '#1f2937',
+    margin: 16,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  mapPlaceholderIcon: {
+    fontSize: 60,
+    marginBottom: 16,
+  },
+  mapPlaceholderTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  mapPlaceholderText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  mapButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  mapButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  miniZoneList: {
+    width: '100%',
+  },
+  miniZoneItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  miniZoneIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  miniZoneName: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 14,
+  },
+  miniZoneStatus: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });
