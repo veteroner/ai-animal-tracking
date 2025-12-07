@@ -33,6 +33,7 @@ from src.api.routes import (
 )
 from src.api.routes.alerts import router as alerts_router
 from src.api.routes.streaming import router as streaming_router
+from src.api.routes.reproduction_routes import router as reproduction_router
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +228,7 @@ async def api_info() -> Dict[str, Any]:
             "health": f"{API_PREFIX}/health",
             "analytics": f"{API_PREFIX}/analytics",
             "export": f"{API_PREFIX}/export",
+            "reproduction": f"{API_PREFIX}/reproduction",
         }
     }
 
@@ -245,6 +247,7 @@ app.include_router(detection_router, prefix=API_PREFIX)
 app.include_router(behaviors_router, prefix=API_PREFIX)
 app.include_router(health_router, prefix=f"{API_PREFIX}/animals")
 app.include_router(export_router, prefix=API_PREFIX)
+app.include_router(reproduction_router, prefix=API_PREFIX)
 
 
 # ===========================================
