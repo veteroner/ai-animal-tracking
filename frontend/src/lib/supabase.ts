@@ -559,6 +559,25 @@ export const api = {
   // Reproduction - Estrus
   estrus: {
     getAll: async (): Promise<EstrusDetection[]> => {
+      // Try Backend API first
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/api/v1/reproduction/estrus`);
+        if (response.ok) {
+          const data = await response.json();
+          return (data.detections || []).map((d: any) => ({
+            id: d.id,
+            animal_id: d.animal_id,
+            detection_time: d.detection_date,
+            behaviors: d.signs || [],
+            confidence: d.confidence,
+            status: d.status,
+          }));
+        }
+      } catch (error) {
+        console.log('Backend API not available for estrus');
+      }
+      
       if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('estrus_detections')
@@ -578,6 +597,25 @@ export const api = {
       return data as EstrusDetection[];
     },
     getActive: async (): Promise<EstrusDetection[]> => {
+      // Try Backend API first
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/api/v1/reproduction/estrus?status=detected`);
+        if (response.ok) {
+          const data = await response.json();
+          return (data.detections || []).map((d: any) => ({
+            id: d.id,
+            animal_id: d.animal_id,
+            detection_time: d.detection_date,
+            behaviors: d.signs || [],
+            confidence: d.confidence,
+            status: d.status,
+          }));
+        }
+      } catch (error) {
+        console.log('Backend API not available for active estrus');
+      }
+      
       if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('estrus_detections')
@@ -618,6 +656,25 @@ export const api = {
   // Reproduction - Pregnancies
   pregnancies: {
     getAll: async (): Promise<Pregnancy[]> => {
+      // Try Backend API first
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/api/v1/reproduction/pregnancies`);
+        if (response.ok) {
+          const data = await response.json();
+          return (data.pregnancies || []).map((p: any) => ({
+            id: p.id,
+            animal_id: p.animal_id,
+            breeding_date: p.breeding_date,
+            expected_birth_date: p.expected_birth,
+            status: p.status === 'pregnant' ? 'aktif' : p.status,
+            days_pregnant: p.days_pregnant,
+          }));
+        }
+      } catch (error) {
+        console.log('Backend API not available for pregnancies');
+      }
+      
       if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('pregnancies')
@@ -627,6 +684,25 @@ export const api = {
       return data as Pregnancy[];
     },
     getActive: async (): Promise<Pregnancy[]> => {
+      // Try Backend API first
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/api/v1/reproduction/pregnancies?status=aktif`);
+        if (response.ok) {
+          const data = await response.json();
+          return (data.pregnancies || []).map((p: any) => ({
+            id: p.id,
+            animal_id: p.animal_id,
+            breeding_date: p.breeding_date,
+            expected_birth_date: p.expected_birth,
+            status: 'aktif',
+            days_pregnant: p.days_pregnant,
+          }));
+        }
+      } catch (error) {
+        console.log('Backend API not available for active pregnancies');
+      }
+      
       if (!isSupabaseConfigured()) return [];
       const { data, error } = await supabase
         .from('pregnancies')
@@ -779,6 +855,24 @@ export const api = {
   // Reproduction Stats
   reproductionStats: {
     getSummary: async () => {
+      // First try Backend API
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/api/v1/reproduction/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            activeEstrus: data.active_estrus || 0,
+            activePregnancies: data.active_pregnancies || 0,
+            dueSoon: data.upcoming_births || 0,
+            totalBirths: data.total_pregnancies || 0,
+            pendingBreedings: 0,
+          };
+        }
+      } catch (error) {
+        console.log('Backend API not available, trying Supabase...');
+      }
+      
       if (!isSupabaseConfigured()) {
         return {
           activeEstrus: 0,
